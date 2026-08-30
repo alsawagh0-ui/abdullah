@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/occasion.dart';
 import '../../models/person.dart';
 import '../../models/settings.dart';
+import '../../services/wajb_services.dart';
 import '../store_scope.dart';
 
 /// الإعدادات — ومعها إعدادات الخصوصية.
@@ -58,6 +59,31 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           const _SectionTitle('التنبيهات'),
+          ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: const Text('تفعيل التنبيهات'),
+            subtitle: Text(
+              'مجدولة الآن: ${store.reminderPlan().length} تنبيه '
+              'خلال الأسبوع القادم',
+            ),
+            trailing: const Icon(Icons.chevron_left),
+            onTap: () async {
+              final services = ServicesScope.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+              final granted =
+                  await services.notifications.requestPermission();
+              await store.syncReminders();
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    granted
+                        ? 'تم تفعيل التنبيهات'
+                        : 'التنبيهات مرفوضة من إعدادات النظام',
+                  ),
+                ),
+              );
+            },
+          ),
           SwitchListTile(
             secondary: const Icon(Icons.mosque_outlined),
             title: const Text('احترام مواقيت الصلاة'),

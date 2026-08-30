@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../engines/action_layer.dart';
@@ -11,6 +13,7 @@ import '../models/obligation.dart';
 import '../models/occasion.dart';
 import '../models/person.dart';
 import '../models/settings.dart';
+import '../services/notification_planner.dart';
 import 'seed_data.dart';
 import 'storage.dart';
 
@@ -22,11 +25,18 @@ class WajbStore extends ChangeNotifier {
   WajbStore({
     WajbStorage? storage,
     DateTime Function()? clock,
+    this.notifications,
+    this.planner = const NotificationPlanner(),
   })  : _storage = storage ?? MemoryStorage(),
         _clock = clock ?? DateTime.now;
 
   final WajbStorage _storage;
   final DateTime Function() _clock;
+
+  /// اختيارية: في الاختبارات وعلى المنصات غير المدعومة تبقى فارغة فلا
+  /// تُجدول تنبيهات.
+  final WajbNotifications? notifications;
+  final NotificationPlanner planner;
 
   final CaptureEngine captureEngine = const CaptureEngine();
   final MessageEngine messageEngine = const MessageEngine();
@@ -117,6 +127,23 @@ class WajbStore extends ChangeNotifier {
   void _touch() {
     notifyListeners();
     save();
+    unawaited(syncReminders());
+  }
+
+  /// خطة التنبيهات الحالية — منطق خالص، يُحسب هنا ويُختبر مستقلاً.
+  List<ReminderPlan> reminderPlan() => planner.plan(
+        obligations: rankedObligations(),
+        now: now,
+        viewerGender: _profile.gender,
+        respectPrayerTimes: _profile.respectPrayerTimes,
+      );
+
+  /// تمرير الخطة إلى جدولة المنصة. تُستبدل الجدولة السابقة بالكامل في
+  /// كل مرة حتى لا تتراكم تنبيهات لواجبات أُدّيت.
+  Future<void> syncReminders() async {
+    final target = notifications;
+    if (target == null) return;
+    await target.sync(reminderPlan());
   }
 
   // ── خريطة العلاقات ─────────────────────────────────────────────────

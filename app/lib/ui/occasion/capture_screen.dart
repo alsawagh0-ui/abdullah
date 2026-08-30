@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../engines/capture_engine.dart';
 import '../../models/occasion.dart';
 import '../../models/person.dart';
+import '../../services/card_scanner.dart';
+import '../../services/wajb_services.dart';
 import '../store_scope.dart';
 
 /// شاشة المحرك الأول — الالتقاط الذكي.
@@ -21,6 +23,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
   final TextEditingController _input = TextEditingController();
   final CaptureEngine _engine = const CaptureEngine();
   CaptureResult? _result;
+  bool _scanning = false;
 
   @override
   void initState() {
@@ -39,6 +42,35 @@ class _CaptureScreenState extends State<CaptureScreen> {
     setState(() => _result = _engine.parse(_input.text));
   }
 
+  /// يلتقط صورة البطاقة، يستخلص نصها، ثم يضعه في حقل التحرير.
+  ///
+  /// النص المستخلَص يُعرض للمستخدم دائماً قبل التحليل: لا يُحفظ شيء
+  /// اعتماداً على قراءة آلية وحدها.
+  Future<void> _scan(CardImageSource source) async {
+    final services = ServicesScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() => _scanning = true);
+    try {
+      final path = await services.imagePicker.pickImage(source);
+      if (path == null) return;
+
+      final text = await services.recognizer.recognize(path);
+      if (text == null || text.trim().isEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('ما قدرنا نقرأ البطاقة — جرّب صورة أوضح'),
+          ),
+        );
+        return;
+      }
+      _input.text = text;
+      _parse();
+    } finally {
+      if (mounted) setState(() => _scanning = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -50,9 +82,45 @@ class _CaptureScreenState extends State<CaptureScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'الصق نص الإعلان أو أملِه صوتياً باللهجة.',
+            'صوّر بطاقة الإعلان، أو الصق نصها، أو أملِه صوتياً باللهجة.',
             style: theme.textTheme.bodyMedium,
           ),
+          const SizedBox(height: 12),
+          if (ServicesScope.of(context).recognizer.isAvailable)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _scanning
+                        ? null
+                        : () => _scan(CardImageSource.camera),
+                    icon: const Icon(Icons.photo_camera_outlined),
+                    label: const Text('صوّر البطاقة'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _scanning
+                        ? null
+                        : () => _scan(CardImageSource.gallery),
+                    icon: const Icon(Icons.image_outlined),
+                    label: const Text('من المعرض'),
+                  ),
+                ),
+              ],
+            )
+          else
+            Text(
+              'قراءة الصور غير متاحة على هذه المنصة — الصق النص يدوياً.',
+              style: theme.textTheme.bodySmall,
+            ),
+          if (_scanning) ...[
+            const SizedBox(height: 12),
+            const LinearProgressIndicator(),
+            const SizedBox(height: 4),
+            const Text('جارٍ قراءة البطاقة...'),
+          ],
           const SizedBox(height: 12),
           TextField(
             controller: _input,

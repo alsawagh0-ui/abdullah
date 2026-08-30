@@ -8,6 +8,8 @@ import '../../models/ledger_entry.dart';
 import '../../models/obligation.dart';
 import '../../models/occasion.dart';
 import '../../models/person.dart';
+import '../../services/external_actions.dart';
+import '../../services/wajb_services.dart';
 import '../../theme/app_theme.dart';
 import '../store_scope.dart';
 import '../widgets/tier_chip.dart';
@@ -108,10 +110,22 @@ class _OccasionBody extends StatelessWidget {
               leading: const Icon(Icons.phone_outlined),
               title: Text(occasion.contactPhone!),
               subtitle: const Text('رقم التواصل من الإعلان'),
-              trailing: IconButton(
-                icon: const Icon(Icons.copy_outlined),
-                tooltip: 'نسخ',
-                onPressed: () => _copy(context, occasion.contactPhone!),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.call_outlined),
+                    tooltip: 'اتصال',
+                    onPressed: () => ServicesScope.of(context)
+                        .externalActions
+                        .call(occasion.contactPhone!),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_outlined),
+                    tooltip: 'نسخ',
+                    onPressed: () => _copy(context, occasion.contactPhone!),
+                  ),
+                ],
               ),
             ),
           ],
@@ -137,15 +151,7 @@ class _OccasionBody extends StatelessWidget {
           FilledButton.icon(
             onPressed: occasion.done
                 ? null
-                : () {
-                    store.markDone(occasion, LedgerAction.attended);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('سُجّل الحضور في دفترك الخاص'),
-                      ),
-                    );
-                    Navigator.of(context).pop();
-                  },
+                : () => _confirmAttendance(context, occasion, person),
             icon: const Icon(Icons.how_to_reg_outlined),
             label: Text(occasion.done ? 'تم الأداء' : 'أنا حاضر'),
           ),
@@ -204,11 +210,74 @@ class _OccasionBody extends StatelessWidget {
         ? ('مقر النساء', occasion.womenVenue)
         : ('مقر الرجال', occasion.menVenue);
 
+    final services = ServicesScope.of(context);
     return [
-      _VenueCard(label: mine.$1, venue: mine.$2, highlighted: true),
+      _VenueCard(
+        label: mine.$1,
+        venue: mine.$2,
+        highlighted: true,
+        onNavigate: mine.$2 == null
+            ? null
+            : () => services.externalActions.openMap(mine.$2!),
+      ),
       const SizedBox(height: 8),
-      _VenueCard(label: other.$1, venue: other.$2, highlighted: false),
+      _VenueCard(
+        label: other.$1,
+        venue: other.$2,
+        highlighted: false,
+        onNavigate: other.$2 == null
+            ? null
+            : () => services.externalActions.openMap(other.$2!),
+      ),
     ];
+  }
+
+  /// «أنا حاضر»: يقيّد الحضور في الدفتر، ويعرض إضافة الموعد إلى التقويم
+  /// كخطوة اختيارية بموافقة صريحة — لا يكتب في تقويم المستخدم من تلقائه.
+  Future<void> _confirmAttendance(
+    BuildContext context,
+    Occasion occasion,
+    Person person,
+  ) async {
+    final store = StoreScope.read(context);
+    final services = ServicesScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    store.markDone(occasion, LedgerAction.attended);
+
+    final addToCalendar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('سُجّل الحضور'),
+        content: const Text('تبي نضيف الموعد لتقويمك؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('لا، شكراً'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('أضِف للتقويم'),
+          ),
+        ],
+      ),
+    );
+
+    if (addToCalendar ?? false) {
+      final draft = const CalendarEventBuilder().build(
+        occasion: occasion,
+        person: person,
+        viewerGender: store.profile.gender,
+        prayerTimes: PrayerTimes.forDate(occasion.startsAt),
+      );
+      await services.externalActions.addToCalendar(draft);
+    }
+
+    navigator.pop();
+    messenger.showSnackBar(
+      const SnackBar(content: Text('سُجّل الحضور في دفترك الخاص')),
+    );
   }
 
   Future<void> _delegate(BuildContext context, Occasion occasion) async {
@@ -290,11 +359,13 @@ class _VenueCard extends StatelessWidget {
     required this.label,
     required this.venue,
     required this.highlighted,
+    this.onNavigate,
   });
 
   final String label;
   final Venue? venue;
   final bool highlighted;
+  final VoidCallback? onNavigate;
 
   @override
   Widget build(BuildContext context) {
@@ -337,6 +408,17 @@ class _VenueCard extends StatelessWidget {
               venue?.timingLabel ?? 'التوقيت غير محدد',
               style: theme.textTheme.bodySmall,
             ),
+            if (onNavigate != null) ...[
+              const SizedBox(height: 6),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  onPressed: onNavigate,
+                  icon: const Icon(Icons.directions_outlined, size: 18),
+                  label: const Text('الملاحة'),
+                ),
+              ),
+            ],
           ],
         ),
       ),

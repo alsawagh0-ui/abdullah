@@ -4,6 +4,18 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>لتصوير بطاقة الإعلان واستخلاص بيانات المناسبة منها على جهازك، دون رفع الصورة لأي خدمة.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>لاختيار صورة بطاقة الإعلان من معرض الصور واستخلاص بياناتها على جهازك.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>لإضافة موعد المناسبة إلى تقويمك عند طلبك ذلك.</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>لإضافة موعد المناسبة إلى تقويمك عند طلبك ذلك.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>tel</string>
+	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ar</string>
 	<key>CFBundleLocalizations</key>

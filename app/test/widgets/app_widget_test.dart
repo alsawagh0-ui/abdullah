@@ -4,6 +4,7 @@ import 'package:wajb/app.dart';
 import 'package:wajb/data/storage.dart';
 import 'package:wajb/data/wajb_store.dart';
 import 'package:wajb/models/person.dart';
+import 'package:wajb/services/wajb_services.dart';
 import 'package:wajb/ui/home/home_screen.dart';
 import 'package:wajb/ui/occasion/occasion_screen.dart';
 import 'package:wajb/ui/store_scope.dart';
@@ -33,14 +34,18 @@ Future<void> pumpScreen(
   WajbStore store,
   Widget screen, {
   Size surface = const Size(420, 1400),
+  WajbServices? services,
 }) async {
   await tester.binding.setSurfaceSize(surface);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
-    StoreScope(
-      store: store,
-      child: MaterialApp(
-        home: Directionality(textDirection: TextDirection.rtl, child: screen),
+    ServicesScope(
+      services: services ?? WajbServices.fake(),
+      child: StoreScope(
+        store: store,
+        child: MaterialApp(
+          home: Directionality(textDirection: TextDirection.rtl, child: screen),
+        ),
       ),
     ),
   );
@@ -179,6 +184,11 @@ void main() {
       await pumpScreen(tester, store, const OccasionScreen(occasionId: 'o1'));
 
       await tester.tap(find.text('أنا حاضر'));
+      await tester.pumpAndSettle();
+
+      // يُسأل المستخدم عن التقويم بدل الكتابة فيه تلقائياً.
+      expect(find.text('تبي نضيف الموعد لتقويمك؟'), findsOneWidget);
+      await tester.tap(find.text('لا، شكراً'));
       await tester.pumpAndSettle();
 
       expect(store.ledger.entries.length, before + 1);
