@@ -8,6 +8,11 @@ import 'package:flutter/material.dart';
 class WajbTheme {
   const WajbTheme._();
 
+  /// الخط المدمج. تضمينه — بدل الاعتماد على خط النظام — يوحّد شكل
+  /// النص العربي بين iOS وإصدارات Android المختلفة، ويحفظ اتساق
+  /// التشكيل والأرقام.
+  static const String fontFamily = 'Cairo';
+
   static const Color primary = Color(0xFF0B6E4F);
   static const Color solemn = Color(0xFF37474F);
   static const Color sand = Color(0xFFF6F3EC);
@@ -36,6 +41,7 @@ class WajbTheme {
     final base = ThemeData(
       colorScheme: scheme,
       useMaterial3: true,
+      fontFamily: fontFamily,
       scaffoldBackgroundColor:
           scheme.brightness == Brightness.light && !solemnMode
               ? sand
@@ -66,12 +72,20 @@ class WajbTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: Size.fromHeight(elderMode ? 56 : 48),
-          textStyle: TextStyle(fontSize: elderMode ? 19 : 16),
+          // مشتق من نسق النص كي يرث الخط المدمج؛ TextStyle مستقل هنا
+          // يُسقط العائلة ويجعل نص الأزرار مختلفاً عن بقية الواجهة.
+          textStyle: base.textTheme.labelLarge?.copyWith(
+            fontSize: elderMode ? 19 : 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: Size.fromHeight(elderMode ? 56 : 48),
+          textStyle: base.textTheme.labelLarge?.copyWith(
+            fontSize: elderMode ? 19 : 16,
+          ),
         ),
       ),
       listTileTheme: ListTileThemeData(
