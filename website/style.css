@@ -329,6 +329,24 @@ a { color: inherit; text-decoration: none; }
   color: var(--accent-2);
 }
 
+/* Vision */
+.vision-inner {
+  text-align: center;
+  max-width: 620px;
+}
+
+.vision-quote {
+  font-size: 1.15rem;
+  color: var(--text-dim);
+  margin: 0 0 10px;
+}
+
+.vision-quote-accent {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1.35rem;
+}
+
 /* Footer */
 .footer {
   border-top: 1px solid var(--border);
