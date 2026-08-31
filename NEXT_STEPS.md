@@ -12,46 +12,48 @@
 | تطبيق Flutter (iOS + Android + Web) | نموذج عامل كامل المنطق — [`app/`](app/) |
 | الموقع التعريفي | جاهز — [`website/`](website/)، ولقطاته الآن لقطات حقيقية من التطبيق نفسه |
 | الاختبارات | **186 اختباراً ناجحاً**، `flutter analyze` بلا ملاحظات |
-| Pull Request | [#2](https://github.com/alsawagh0-ui/abdullah/pull/2) — **مفتوح، ينتظر المراجعة والدمج** |
-| بناء APK تلقائي | **تم إنشاؤه** — [`.github/workflows/build-apk.yml`](.github/workflows/build-apk.yml)، يعمل على أي push يمس `app/` أو تشغيل يدوي |
+| Pull Request | [#2](https://github.com/alsawagh0-ui/abdullah/pull/2) — **مدموج** |
+| بناء APK تلقائي | ✅ **يعمل فعلياً الآن** — [`.github/workflows/build-apk.yml`](.github/workflows/build-apk.yml)، أول بناء ناجح: [تشغيل #5](https://github.com/alsawagh0-ui/abdullah/actions/runs/33358533096) |
 | نشر معاينة الويب | **تم إنشاؤه** — [`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) ينشر الموقع التعريفي + نسخة ويب تفاعلية من التطبيق على GitHub Pages عند push إلى `main` أو تشغيل يدوي |
-| التشغيل على جهاز حقيقي | **لم يحدث بعد على جهاز فعلي** — لكن أصبح ممكناً الآن عبر تنزيل الـ APK من Actions، أو تجربة نسخة الويب مباشرة من المتصفح |
+| التشغيل على جهاز حقيقي | **لم يحدث بعد على جهاز فعلي** — لكن الـ APK جاهز للتنزيل الآن من مرفقات تشغيل Actions، أو جرّب نسخة الويب مباشرة من المتصفح |
 
 ## الخطوات القادمة — مرتّبة حسب الأثر
 
-### 1. احصل على APK وجرّب التطبيق بيدك — ⚠️ أول تشغيل حقيقي كشف عطلاً معروفاً الآن
-تمت إضافة `build-apk.yml`، وأول تشغيل فعلي له على Actions (أول Android
-SDK حقيقي يبني هذا المشروع على الإطلاق) **فشل** في خطوة
-`flutter build apk --release` — وليس بسبب هذا التغيير، بل بسبب توافق
-تبعية قديمة:
+### 1. احصل على APK وجرّب التطبيق بيدك — ✅ تم فعلياً
+`build-apk.yml` نجح فعلياً على Android SDK حقيقي على Actions. تحميل
+الـ APK: افتح
+[تشغيل #5](https://github.com/alsawagh0-ui/abdullah/actions/runs/33358533096)
+→ Artifacts → `wajib-release-apk` (36 م.ب تقريباً)، ثبّته على جهاز
+أندرويد يسمح بمصادر غير معروفة.
 
-> حزمة `flutter_tesseract_ocr` (آخر تحديث لها قديم) يحتوي
-> `android/build.gradle` بأسلوب Groovy كلاسيكي يستدعي `jcenter()` —
-> وهي دالة لم تعد موجودة إطلاقاً في `RepositoryHandler` على إصدار
-> Gradle 9.3.1 / AGP 9.1.0 المستخدمين حالياً في `app/android`
-> (القالب الافتراضي لأحدث إصدار Flutter). كما أن نفس الحزمة لا تطبّق
-> إضافة أندرويد بالطريقة الحديثة، فيفشل أيضاً بخطأ
-> "'kotlin-android' plugin requires one of the Android Gradle plugins".
+استغرق الوصول لهذه النتيجة إصلاح عطلين حقيقيين ظهرا بالتتابع عند أول
+بناء فعلي للمشروع على الإطلاق:
 
-خيارات الإصلاح المقترحة (لم تُنفَّذ لأن بيئة التطوير هنا بلا Android
-SDK ولا يمكن التحقق من أي إصلاح محلياً قبل رفعه):
+1. **`flutter_tesseract_ocr` غير متوافقة مع Gradle 9 / AGP 9.** حزمة
+   الاستخلاص الضوئي (آخر تحديث لها قديم) يحتوي `android/build.gradle`
+   بأسلوب Groovy كلاسيكي يستدعي `jcenter()` (دالة محذوفة من
+   `RepositoryHandler` في Gradle 9.3.1) ويثبّت classpath خاص بـ AGP
+   7.1.2 غير متوافق أصلاً مع Gradle 9. **الإصلاح:** نسخة محلية مصححة
+   من نفس إصدار الحزمة (0.4.31) في
+   [`app/third_party/flutter_tesseract_ocr`](app/third_party/flutter_tesseract_ocr)
+   — الفرق الوحيد أن `android/build.gradle` يطبّق `com.android.library`
+   بلا رقم إصدار مثبّت، فتُحل تلقائياً عبر `pluginManagement` في
+   `app/android/settings.gradle.kts` بدل حمل AGP خاص بها. مربوطة عبر
+   `dependency_overrides` في `pubspec.yaml`.
+2. **`flutter_local_notifications` يحتاج core library desugaring.**
+   خطأ منفصل تماماً ظهر بعد حل المشكلة الأولى، في خطوة
+   `checkReleaseAarMetadata`. الإصلاح سطران في
+   `app/android/app/build.gradle.kts`:
+   `isCoreLibraryDesugaringEnabled = true` + تبعية
+   `com.android.tools:desugar_jdk_libs`.
 
-1. تثبيت إصدار أقدم متوافق من Gradle/AGP (تقريباً Gradle 8.x / AGP 8.x)
-   في `app/android/gradle/wrapper/gradle-wrapper.properties` و
-   `app/android/settings.gradle.kts` — الأقرب لما كُتبت له الحزمة، مع
-   خطر أن تتعارض إصدارات أحدث في باقي الحزم.
-2. استبدال `flutter_tesseract_ocr` بحزمة OCR بديلة مُصانة حالياً (تبقى
-   المشكلة أن ML Kit لا يدعم العربية، فالبدائل محدودة — يحتاج بحثاً).
-3. Fork لِلحزمة وتصحيح `android/build.gradle` يدوياً، ثم استخدامها عبر
-   `dependency_overrides` في `pubspec.yaml` تشير لمسار محلي أو Git.
+كلا الإصلاحين تم التحقق منهما فعلياً على Actions (لا يوجد Android SDK
+في بيئة التطوير هنا)، بعد محاولتين فاشلتين أولى (خطأ ترتيب
+`plugins {}` في الملف المصحح، ثم اكتشاف مشكلة الـ desugaring).
 
-**القرار متروك لك** — الإصلاح يمس تبعية أساسية للاستخلاص الضوئي (البند
-الأخطر أصلاً في البند 2 أدناه)، وأي تغيير هنا يحتاج اختباراً فعلياً على
-Android SDK حقيقي لن يتوفر إلا على Actions نفسها.
-
-بديل يعمل الآن بلا أي عائق: نسخة الويب المنشورة عبر `deploy-pages.yml`
-تعمل من أي متصفح فوراً (بها نفس منطق التطبيق، فيما عدا الاستخلاص
-الضوئي وبعض تكاملات الجهاز التي تحتاج منصة أصلية).
+بديل فوري بلا انتظار: نسخة الويب المنشورة عبر `deploy-pages.yml` تعمل
+من أي متصفح فوراً (بها نفس منطق التطبيق، فيما عدا الاستخلاص الضوئي
+وبعض تكاملات الجهاز التي تحتاج منصة أصلية).
 
 ### 2. جرّب الاستخلاص الضوئي على 5 بطاقات نعي حقيقية
 **أخطر مجهول تقني في المشروع.** بطاقات النعي بخطوط زخرفية، وهي أصعب
