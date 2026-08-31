@@ -17,6 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="waitlist.js" defer></script>
 </head>
 <body>
 
@@ -189,12 +190,12 @@
     <div class="container waitlist-inner">
       <h2 class="section-title">كن أول من يجرّب واجِب</h2>
       <p class="section-lead">انضم لقائمة الانتظار وسنراسلك فور إطلاق المنصة في الكويت.</p>
-      <form class="waitlist-form" onsubmit="event.preventDefault(); this.querySelector('.form-msg').hidden=false; this.querySelector('.form-fields').hidden=true;">
+      <form id="waitlist-form" class="waitlist-form" data-formspree-endpoint="https://formspree.io/f/YOUR_FORM_ID">
         <div class="form-fields">
-          <input type="email" required placeholder="بريدك الإلكتروني" aria-label="البريد الإلكتروني">
+          <input type="email" name="email" required placeholder="بريدك الإلكتروني" aria-label="البريد الإلكتروني">
           <button type="submit" class="btn btn-primary">انضم الآن</button>
         </div>
-        <p class="form-msg" hidden>شكراً لك! سنتواصل معك قريباً. 🎉</p>
+        <p class="form-msg" role="status" hidden></p>
       </form>
     </div>
   </section>
