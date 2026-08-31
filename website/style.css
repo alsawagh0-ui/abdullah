@@ -218,6 +218,36 @@ a { color: inherit; text-decoration: none; }
 .step h3 { margin: 0 0 8px; font-size: 1.1rem; }
 .step p { margin: 0; color: var(--text-dim); font-size: 0.95rem; }
 
+/* Screens */
+.screens-row {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  padding: 8px 4px 16px;
+  scroll-snap-type: x proximity;
+}
+
+.screen {
+  flex: 0 0 auto;
+  margin: 0;
+  text-align: center;
+  scroll-snap-align: start;
+}
+
+.screen img {
+  width: 220px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.screen figcaption {
+  margin-top: 12px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 /* Principle */
 .principle-inner {
   text-align: center;
