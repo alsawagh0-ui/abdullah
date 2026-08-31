@@ -56,6 +56,17 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   yaml: ^3.1.4
 
+# flutter_tesseract_ocr's published Android build.gradle calls the
+# long-removed `jcenter()` repository and pins its own AGP 7.1.2
+# classpath, which fails outright under this project's Gradle 9 / AGP 9
+# toolchain (see NEXT_STEPS.md §1). third_party/flutter_tesseract_ocr is
+# a local copy of the same 0.4.31 release with only android/build.gradle
+# patched to apply `com.android.library` without a pinned version, so it
+# resolves through the host app's own pluginManagement instead.
+dependency_overrides:
+  flutter_tesseract_ocr:
+    path: third_party/flutter_tesseract_ocr
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

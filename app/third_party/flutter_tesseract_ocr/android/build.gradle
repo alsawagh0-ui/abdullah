@@ -1,0 +1,40 @@
+group 'io.paratoner.flutter_tesseract_ocr'
+version '1.0'
+
+// Patched for compatibility with modern Gradle/AGP toolchains (see
+// NEXT_STEPS.md for context). The upstream package's own build.gradle
+// declares a per-module `buildscript { classpath 'com.android.tools.build:gradle:7.1.2' }`
+// and calls the long-removed `jcenter()` repository, neither of which
+// work under Gradle 9 / AGP 9. This version instead applies
+// `com.android.library` without a pinned version, so it resolves through
+// the host app's own `pluginManagement` block in
+// `app/android/settings.gradle.kts` and stays on the same AGP as the
+// rest of the project.
+plugins {
+    id 'com.android.library'
+}
+
+rootProject.allprojects {
+    repositories {
+        flatDir {
+            dirs project(':flutter_tesseract_ocr').file('libs')
+        }
+    }
+}
+
+android {
+    namespace "io.paratoner.flutter_tesseract_ocr"
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 21
+    }
+
+    lint {
+        disable += ['InvalidPackage']
+    }
+}
+
+dependencies {
+    api(name: 'tesseract4android-release', ext: 'aar')
+}
