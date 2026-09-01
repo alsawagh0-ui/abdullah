@@ -221,19 +221,25 @@ class WajbStore extends ChangeNotifier {
       );
 
   /// «واجبات اليوم»: ثلاث بطاقات كحد أقصى — مبدأ الشاشة الرئيسية.
-  List<Obligation> todaysDuties({int limit = 3}) =>
-      rankedObligations().take(limit).toList();
+  ///
+  /// يمرَّر [ranked] حين يكون مُحسَّباً مسبقاً في نفس البناء (مثل شاشة
+  /// «واجبات اليوم» التي تحتاج القائمة الكاملة أكثر من مرة) — حساب
+  /// الترتيب يمرّ على كل المناسبات النشطة زوجياً (تعارض اليوم نفسه)،
+  /// فتكراره أكثر من مرة في نفس الإطار مضيعة حقيقية.
+  List<Obligation> todaysDuties({int limit = 3, List<Obligation>? ranked}) =>
+      (ranked ?? rankedObligations()).take(limit).toList();
 
-  /// ملخص الأسبوع المعروض في الشريط العلوي.
-  ({int total, int confirmed}) weekSummary() {
+  /// ملخص الأسبوع المعروض في الشريط العلوي. انظر ملاحظة [todaysDuties]
+  /// عن [ranked].
+  ({int total, int confirmed}) weekSummary({List<Obligation>? ranked}) {
     final weekEnd = now.add(const Duration(days: 7));
-    final ranked = rankedObligations()
+    final week = (ranked ?? rankedObligations())
         .where((o) => o.occasion.startsAt.isBefore(weekEnd))
         .toList();
     return (
-      total: ranked.length,
+      total: week.length,
       confirmed:
-          ranked.where((o) => o.tier == ObligationTier.confirmed).length,
+          week.where((o) => o.tier == ObligationTier.confirmed).length,
     );
   }
 

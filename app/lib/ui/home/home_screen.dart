@@ -72,8 +72,11 @@ class DutiesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final duties = store.todaysDuties(limit: maxCards);
-    final summary = store.weekSummary();
+    // يُحسب مرة واحدة ويُعاد استخدامه أدناه بدل تكرار الترتيب (يمرّ على
+    // كل المناسبات النشطة زوجياً) أربع مرات في نفس البناء.
+    final ranked = store.rankedObligations();
+    final duties = store.todaysDuties(limit: maxCards, ranked: ranked);
+    final summary = store.weekSummary(ranked: ranked);
     final hijri = HijriDate.fromGregorian(store.now);
 
     return Scaffold(
@@ -124,7 +127,7 @@ class DutiesScreen extends StatelessWidget {
                 ),
               ),
             ),
-          if (store.rankedObligations().length > maxCards)
+          if (ranked.length > maxCards)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: OutlinedButton(
@@ -135,7 +138,7 @@ class DutiesScreen extends StatelessWidget {
                 ),
                 child: Text(
                   'عرض بقية الواجبات '
-                  '(${store.rankedObligations().length - maxCards})',
+                  '(${ranked.length - maxCards})',
                 ),
               ),
             ),
