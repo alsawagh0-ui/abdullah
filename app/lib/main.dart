@@ -17,6 +17,7 @@ Future<void> main() async {
     notifications: notifications,
     recognizer: const TesseractCardRecognizer(),
     imagePicker: PlatformCardImagePicker(),
+    voiceInput: PlatformVoiceInputRecognizer(),
   );
 
   final store = WajbStore(

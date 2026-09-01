@@ -8,6 +8,10 @@
 	<string>لتصوير بطاقة الإعلان واستخلاص بيانات المناسبة منها على جهازك، دون رفع الصورة لأي خدمة.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>لاختيار صورة بطاقة الإعلان من معرض الصور واستخلاص بياناتها على جهازك.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>لالتقاط صوتك عند اختيار الإملاء الصوتي بدل الكتابة أو التصوير.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>لتحويل إملائك الصوتي إلى نص تراجعه قبل حفظ المناسبة.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>لإضافة موعد المناسبة إلى تقويمك عند طلبك ذلك.</string>
 	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>

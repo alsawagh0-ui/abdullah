@@ -7,6 +7,7 @@ import 'package:wajb/models/person.dart';
 import 'package:wajb/services/card_scanner.dart';
 import 'package:wajb/services/external_actions.dart';
 import 'package:wajb/services/notification_planner.dart';
+import 'package:wajb/services/voice_input.dart';
 import 'package:wajb/services/wajb_services.dart';
 import 'package:wajb/ui/occasion/capture_screen.dart';
 import 'package:wajb/ui/occasion/occasion_screen.dart';
@@ -22,7 +23,7 @@ const String cardText = '''
 
 class TestBundle {
   TestBundle(this.store, this.services, this.actions, this.notifications,
-      this.recognizer, this.picker);
+      this.recognizer, this.picker, this.voice);
 
   final WajbStore store;
   final WajbServices services;
@@ -30,6 +31,7 @@ class TestBundle {
   final RecordingNotifications notifications;
   final FakeCardRecognizer recognizer;
   final FakeCardImagePicker picker;
+  final FakeVoiceInputRecognizer voice;
 }
 
 Future<TestBundle> buildBundle({
@@ -37,12 +39,18 @@ Future<TestBundle> buildBundle({
   String? recognizedText = cardText,
   String? imagePath = '/tmp/card.jpg',
   bool recognizerAvailable = true,
+  bool voiceAvailable = true,
+  List<String> voiceResults = const <String>[],
 }) async {
   final actions = RecordingExternalActions(isIOS: isIOS);
   final notifications = RecordingNotifications();
   final recognizer =
       FakeCardRecognizer(recognizedText, available: recognizerAvailable);
   final picker = FakeCardImagePicker(imagePath);
+  final voice = FakeVoiceInputRecognizer(
+    available: voiceAvailable,
+    results: voiceResults,
+  );
   final store = WajbStore(
     storage: MemoryStorage(),
     clock: () => fixedNow,
@@ -56,11 +64,13 @@ Future<TestBundle> buildBundle({
       notifications: notifications,
       recognizer: recognizer,
       imagePicker: picker,
+      voiceInput: voice,
     ),
     actions,
     notifications,
     recognizer,
     picker,
+    voice,
   );
 }
 
@@ -157,6 +167,56 @@ void main() {
 
       expect(bundle.recognizer.requests, isEmpty);
       expect(find.text('نتيجة الاستخلاص'), findsNothing);
+    });
+  });
+
+  group('الإدخال الصوتي', () {
+    testWidgets('زر الميكروفون يُخفى حين لا يتوفر المحرك', (tester) async {
+      final bundle = await buildBundle(voiceAvailable: false);
+      await pump(tester, bundle, const CaptureScreen());
+      expect(find.byIcon(Icons.mic_none_outlined), findsNothing);
+      expect(find.byIcon(Icons.mic_off_outlined), findsOneWidget);
+    });
+
+    testWidgets('الإملاء يضيف النص النهائي إلى حقل التحرير', (tester) async {
+      final bundle = await buildBundle(
+        voiceResults: const ['العزاء', 'العزاء للرجال في ديوان السالم'],
+      );
+      await pump(tester, bundle, const CaptureScreen());
+
+      await tester.tap(find.byIcon(Icons.mic_none_outlined));
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, 'العزاء للرجال في ديوان السالم');
+      expect(bundle.voice.listening, isFalse);
+    });
+
+    testWidgets('الإملاء يُلحَق بالنص الموجود لا يستبدله', (tester) async {
+      final bundle = await buildBundle(voiceResults: const ['بعد المغرب']);
+      await pump(tester, bundle, const CaptureScreen());
+
+      await tester.enterText(find.byType(TextField), 'العزاء للرجال');
+      await tester.tap(find.byIcon(Icons.mic_none_outlined));
+      await tester.pumpAndSettle();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller!.text, 'العزاء للرجال بعد المغرب');
+    });
+
+    testWidgets('الضغط أثناء الاستماع يوقفه', (tester) async {
+      final bundle = await buildBundle(voiceAvailable: true);
+      await pump(tester, bundle, const CaptureScreen());
+
+      await tester.tap(find.byIcon(Icons.mic_none_outlined));
+      await tester.pump();
+      expect(find.text('يستمع الآن...'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.mic));
+      await tester.pumpAndSettle();
+
+      expect(bundle.voice.stopCalls, 1);
+      expect(find.text('يستمع الآن...'), findsNothing);
     });
   });
 

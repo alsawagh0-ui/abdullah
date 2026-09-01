@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:url_launcher/url_launcher.dart';
@@ -13,6 +14,7 @@ import '../models/occasion.dart';
 import 'card_scanner.dart';
 import 'external_actions.dart';
 import 'notification_planner.dart';
+import 'voice_input.dart';
 
 /// تنبيه للمراجع: كل ما في هذا الملف طبقة رقيقة فوق إضافات المنصة، ولا
 /// يمكن تشغيلها إلا على جهاز فعلي (iOS أو Android). المنطق القابل
@@ -193,4 +195,49 @@ class TesseractCardRecognizer implements CardTextRecognizer {
       return null;
     }
   }
+}
+
+/// الإدخال الصوتي عبر محرك التعرّف الكلامي المدمج في النظام (iOS/Android).
+///
+/// **ملاحظة ستر مهمة، خلافاً لقراءة الصور:** هذا يستخدم محرك النظام
+/// الافتراضي (`SFSpeechRecognizer` على iOS، `SpeechRecognizer` على
+/// أندرويد)، وهو غالباً **يرسل الصوت لخادم آبل أو جوجل** لمعالجته إلا
+/// إذا كان الجهاز يدعم التعرّف على الجهاز فعلياً. هذا خلاف مبدأ الستر
+/// المطبَّق حرفياً على قراءة صور بطاقات النعي عبر Tesseract محلياً (انظر
+/// `TesseractCardRecognizer`). **قرار مؤجل:** إن اعتُبر هذا غير مقبول
+/// لمحتوى حسّاس كالعزاء، الحل تفعيل `onDevice: true` مع تعطيل الميزة
+/// كلياً على الأجهزة التي لا تدعمه — لم يُفعَّل هنا لأنه سيعطّل الميزة
+/// على غالبية الأجهزة الحالية.
+class PlatformVoiceInputRecognizer implements VoiceInputRecognizer {
+  PlatformVoiceInputRecognizer() : _speech = stt.SpeechToText();
+
+  final stt.SpeechToText _speech;
+  bool? _initialized;
+
+  @override
+  Future<bool> get isAvailable async {
+    if (kIsWeb) return false;
+    return _initialized ??= await _speech.initialize();
+  }
+
+  @override
+  Future<void> listen({
+    required void Function(String text, {required bool isFinal}) onResult,
+    String localeId = 'ar',
+  }) async {
+    if (!await isAvailable) return;
+    await _speech.listen(
+      onResult: (result) => onResult(
+        result.recognizedWords,
+        isFinal: result.finalResult,
+      ),
+      listenOptions: stt.SpeechListenOptions(localeId: localeId),
+    );
+  }
+
+  @override
+  Future<void> stop() => _speech.stop();
+
+  @override
+  bool get isListeningNow => _speech.isListening;
 }

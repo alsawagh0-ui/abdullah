@@ -4,6 +4,7 @@ import '../../engines/capture_engine.dart';
 import '../../models/occasion.dart';
 import '../../models/person.dart';
 import '../../services/card_scanner.dart';
+import '../../services/voice_input.dart';
 import '../../services/wajb_services.dart';
 import '../store_scope.dart';
 
@@ -24,6 +25,26 @@ class _CaptureScreenState extends State<CaptureScreen> {
   final CaptureEngine _engine = const CaptureEngine();
   CaptureResult? _result;
   bool _scanning = false;
+  bool _listening = false;
+  // نص الجملة الحالية وحدها، حتى يُستبدَل بنتيجتها النهائية بدل أن
+  // يتكرر مع كل نتيجة جزئية يبثّها محرك التعرّف الصوتي.
+  String _voiceSegment = '';
+  // يُخزَّن هنا بدل قراءته في dispose، لأن البحث في الشجرة عبر
+  // InheritedWidget غير مسموح بعد بدء إزالة العنصر (unmount).
+  VoiceInputRecognizer? _voiceInput;
+  bool _voiceAvailable = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final voiceInput = ServicesScope.of(context).voiceInput;
+    if (!identical(voiceInput, _voiceInput)) {
+      _voiceInput = voiceInput;
+      voiceInput.isAvailable.then((available) {
+        if (mounted) setState(() => _voiceAvailable = available);
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -34,12 +55,53 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
   @override
   void dispose() {
+    if (_listening) _voiceInput?.stop();
     _input.dispose();
     super.dispose();
   }
 
   void _parse() {
     setState(() => _result = _engine.parse(_input.text));
+  }
+
+  /// يبدّل بين بدء الإملاء الصوتي وإيقافه.
+  ///
+  /// النص المُملى يُلحَق بحقل التحرير ويبقى قابلاً للتعديل قبل
+  /// الاستخلاص — لا يُحفظ شيء اعتماداً على قراءة آلية وحدها، تماماً
+  /// كصورة البطاقة.
+  Future<void> _toggleVoice() async {
+    final voice = ServicesScope.of(context).voiceInput;
+    if (_listening) {
+      await voice.stop();
+      if (mounted) setState(() => _listening = false);
+      return;
+    }
+
+    final base = _input.text;
+    final needsSpace = base.isNotEmpty && !base.endsWith('\n');
+    setState(() {
+      _listening = true;
+      _voiceSegment = '';
+    });
+
+    await voice.listen(
+      onResult: (text, {required isFinal}) {
+        if (!mounted) return;
+        setState(() {
+          _voiceSegment = text;
+          _input.text =
+              '$base${needsSpace ? ' ' : ''}$_voiceSegment';
+          _input.selection =
+              TextSelection.collapsed(offset: _input.text.length);
+          if (isFinal) _listening = false;
+        });
+      },
+    );
+    // إن رفض النظام بدء الاستماع (صلاحية أو خطأ) يبقى _listening=true
+    // خطأً — نتحقق من حالة المحرك الفعلية بدل افتراض النجاح.
+    if (mounted && !_voiceInput!.isListeningNow) {
+      setState(() => _listening = false);
+    }
   }
 
   /// يلتقط صورة البطاقة، يستخلص نصها، ثم يضعه في حقل التحرير.
@@ -143,17 +205,37 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton.filledTonal(
-                tooltip: 'إدخال صوتي',
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('الإدخال الصوتي متاح في نسخة الجهاز'),
+              if (_voiceAvailable)
+                IconButton.filledTonal(
+                  tooltip: _listening ? 'إيقاف الإملاء' : 'إدخال صوتي',
+                  onPressed: _toggleVoice,
+                  isSelected: _listening,
+                  icon: Icon(
+                    _listening ? Icons.mic : Icons.mic_none_outlined,
                   ),
+                )
+              else
+                IconButton.filledTonal(
+                  tooltip: 'الإدخال الصوتي غير متاح على هذه المنصة',
+                  onPressed: null,
+                  icon: const Icon(Icons.mic_off_outlined),
                 ),
-                icon: const Icon(Icons.mic_none_outlined),
-              ),
             ],
           ),
+          if (_listening) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 8),
+                Text('يستمع الآن...', style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ],
           if (result != null) ...[
             const SizedBox(height: 20),
             _ResultCard(result: result, onSave: () => _save(result)),

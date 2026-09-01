@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <!-- إعادة جدولة التذكيرات بعد إعادة تشغيل الجهاز. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- الإدخال الصوتي في شاشة الالتقاط الذكي (إملاء بدل الكتابة أو التصوير). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
     <application
         android:label="واجِب"

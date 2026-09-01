@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'card_scanner.dart';
 import 'external_actions.dart';
 import 'notification_planner.dart';
+import 'voice_input.dart';
 
 /// حزمة خدمات المنصة التي تعتمد عليها الشاشات.
 ///
@@ -14,12 +15,14 @@ class WajbServices {
     required this.notifications,
     required this.recognizer,
     required this.imagePicker,
+    required this.voiceInput,
   });
 
   final ExternalActions externalActions;
   final WajbNotifications notifications;
   final CardTextRecognizer recognizer;
   final CardImagePicker imagePicker;
+  final VoiceInputRecognizer voiceInput;
 
   /// خدمات صورية: لا تلمس المنصة، وتُستخدم في الاختبارات وعلى المنصات
   /// غير المدعومة.
@@ -28,6 +31,7 @@ class WajbServices {
         notifications: RecordingNotifications(),
         recognizer: const UnavailableCardRecognizer(),
         imagePicker: FakeCardImagePicker(null),
+        voiceInput: const UnavailableVoiceInputRecognizer(),
       );
 }
 
