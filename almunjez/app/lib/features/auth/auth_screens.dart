@@ -144,6 +144,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 keyboardType: TextInputType.emailAddress,
                 textDirection: TextDirection.ltr,
                 decoration: InputDecoration(hintText: 'name@example.com', labelText: s.email),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
@@ -182,6 +183,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 keyboardType: TextInputType.phone,
                 textDirection: TextDirection.ltr,
                 decoration: InputDecoration(hintText: '+965 5xxx xxxx', labelText: s.phoneNumber),
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
