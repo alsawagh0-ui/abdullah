@@ -1,52 +1,88 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/comedy_lines.dart';
+import '../logic/manager_call_scheduler.dart';
 import '../models/player_state.dart';
 import '../widgets/energy_bar.dart';
+import '../widgets/manager_call_dialog.dart';
 import '../widgets/stat_chip.dart';
 import 'aim_trainer_screen.dart';
 import 'game_over_screen.dart';
 import 'shop_screen.dart';
 
 /// شاشة الغرفة الرئيسية: مركز اللاعب بين الدوام والقيمنق.
-/// MVP بلا تفاصيل بصرية معقدة — بس عرض حالة اللاعب وأزرار التنقل.
-class RoomScreen extends StatelessWidget {
+/// تدير نظام اتصالات المدير العشوائية طول ما اللاعب موجود بهالشاشة.
+class RoomScreen extends StatefulWidget {
   const RoomScreen({super.key});
+
+  @override
+  State<RoomScreen> createState() => _RoomScreenState();
+}
+
+class _RoomScreenState extends State<RoomScreen> {
+  final _scheduler = ManagerCallScheduler();
+  final _random = Random();
+  bool _callActive = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduler.scheduleNext(_triggerIncomingCall);
+  }
+
+  @override
+  void dispose() {
+    _scheduler.cancel();
+    super.dispose();
+  }
+
+  void _triggerIncomingCall() {
+    if (!mounted || _callActive) return;
+    setState(() => _callActive = true);
+
+    final message = ComedyLines
+        .managerCalls[_random.nextInt(ComedyLines.managerCalls.length)];
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => ManagerCallDialog(
+        message: message,
+        onAnswered: () => _resolveCall(dialogContext, ignored: false),
+        onTimeout: () => _resolveCall(dialogContext, ignored: true),
+      ),
+    );
+  }
+
+  void _resolveCall(BuildContext dialogContext, {required bool ignored}) {
+    Navigator.of(dialogContext).pop();
+    if (!mounted) return;
+
+    final player = context.read<PlayerState>();
+    setState(() => _callActive = false);
+
+    if (ignored) {
+      player.ignoreManagerCall();
+      if (player.isFired) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const GameOverScreen(
+              reason: 'فُصلت من الشغل بعد ثلاث اتصالات متجاهلة!',
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    _scheduler.scheduleNext(_triggerIncomingCall);
+  }
 
   void _goTo(BuildContext context, Widget screen) {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
-  }
-
-  void _handleManagerCall(BuildContext context, PlayerState player) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('اتصال من المدير 📞'),
-        content: const Text('وين التقرير؟! رد بسرعة قبل لا يفوتك.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              player.ignoreManagerCall();
-              Navigator.of(dialogContext).pop();
-              if (player.isFired) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (_) => const GameOverScreen(
-                      reason: 'فُصلت من الشغل بعد ثلاث اتصالات متجاهلة!',
-                    ),
-                  ),
-                );
-              }
-            },
-            child: const Text('تجاهل'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('حاضر'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -56,28 +92,29 @@ class RoomScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('اليوم ${player.day} — الساعة ${player.hour}:00'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.phone_in_talk),
-            tooltip: 'محاكاة اتصال المدير',
-            onPressed: () => _handleManagerCall(context, player),
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
               children: [
                 StatChip(icon: Icons.attach_money, value: '${player.money}'),
                 StatChip(
                   icon: Icons.warning_amber,
                   value: '${player.missedManagerCalls}/3',
                 ),
-                StatChip(icon: Icons.wifi, value: 'شبكة ${player.networkLevel}'),
+                StatChip(
+                  icon: Icons.wifi,
+                  value: 'شبكة ${player.networkLevel}',
+                ),
+                StatChip(
+                  icon: Icons.military_tech,
+                  value: '${player.rankPoints}',
+                ),
               ],
             ),
             const SizedBox(height: 24),

@@ -33,6 +33,9 @@ class PlayerState extends ChangeNotifier {
   /// هل اللاعب لسا موظف؟ يتحول false عند الفصل (Game Over).
   bool isEmployed;
 
+  /// نقاط الرانك المتراكمة من الـ Aim Trainer (تُستخدم للتأهل للبطولات لاحقاً).
+  int rankPoints;
+
   PlayerState({
     this.energy = 100,
     this.hour = 9,
@@ -43,22 +46,30 @@ class PlayerState extends ChangeNotifier {
     this.gearLevel = 0,
     this.tier = ProgressionTier.beginner,
     this.isEmployed = true,
+    this.rankPoints = 0,
   });
 
   bool get isFired => missedManagerCalls >= 3;
 
   void changeEnergy(int amount) {
-    energy = (energy + amount).clamp(0, 100);
+    energy = (energy + amount).clamp(0, 100).toInt();
     notifyListeners();
   }
 
   void addMoney(int amount) {
-    money += amount;
+    money = (money + amount) < 0 ? 0 : money + amount;
     notifyListeners();
   }
 
-  void ignoreManagerCall() {
+  void addRankPoints(int amount) {
+    rankPoints += amount;
+    notifyListeners();
+  }
+
+  /// اتصال مدير متجاهل: خصم من الراتب + إنذار يتراكم، وعند الثالث يُفصل اللاعب.
+  void ignoreManagerCall({int salaryPenalty = 50}) {
     missedManagerCalls += 1;
+    money = (money - salaryPenalty) < 0 ? 0 : money - salaryPenalty;
     if (isFired) {
       isEmployed = false;
     }
@@ -71,7 +82,7 @@ class PlayerState extends ChangeNotifier {
   }
 
   void sleep() {
-    energy = (energy + 40).clamp(0, 100);
+    energy = (energy + 40).clamp(0, 100).toInt();
     hour = 9;
     day += 1;
     notifyListeners();
