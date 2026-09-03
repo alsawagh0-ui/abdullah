@@ -7,6 +7,12 @@
 
 </div>
 
+## Screenshots
+
+Captured from the real app (web build of the same code, iPhone viewport, local mode with the demo
+seed) — see `screenshots/`: welcome, sign-in, home, groups, group dashboard, open task, claimed
+task, task with comments, today, notifications, new task, company dashboard, collaborative task.
+
 ## Run
 
 ```bash

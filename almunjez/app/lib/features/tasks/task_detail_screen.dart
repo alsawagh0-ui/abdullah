@@ -172,7 +172,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
   String _headline(S s, Task t, bool isAssignee) {
     if (t.status == TaskStatus.newTask) {
-      if (t.assigneeId == null) return t.isPersonal ? s.status(t.status) : '${s.status(t.status)} — ${s.available}';
+      if (t.assigneeId == null) {
+        if (t.isPersonal) return s.status(t.status);
+        if (t.assignmentMode == AssignmentMode.collaborative) return '${s.status(t.status)} — ${s.modeCollaborative}';
+        return '${s.status(t.status)} — ${s.available}';
+      }
       return isAssignee ? '${s.status(t.status)} — ${s.forYou}' : s.status(t.status);
     }
     return s.status(t.status);

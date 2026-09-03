@@ -289,7 +289,7 @@ class S {
       'task.comment' => t('$a علّق على: $title', '$a commented on: $title'),
       'task.due_soon' => t('تقترب مهلة: $title', 'Deadline approaching: $title'),
       'task.overdue' => t('تأخرت: $title', 'Overdue: $title'),
-      'join.requested' => t('طلب انضمام: $a → $g', 'Join request: $a → $g'),
+      'join.requested' => t('طلب انضمام: $a إلى $g', 'Join request: $a to $g'),
       'join.accepted' => t('تم قبولك في $g', 'You were accepted into $g'),
       'join.rejected' => t('لم يُقبل طلبك للانضمام إلى $g', 'Your request to join $g was not accepted'),
       'member.removed' => t('أُزلت من $g', 'You were removed from $g'),
