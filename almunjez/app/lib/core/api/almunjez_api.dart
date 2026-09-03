@@ -78,6 +78,12 @@ abstract class AlMunjezApi {
   Future<int> unreadCount();
   Future<void> markRead(String id);
   Future<void> markAllRead();
+
+  /// Rows the user overrode; a type absent here is both push and in-app on
+  /// by default (doc 08 §5). G3 groups these by category, not one row each.
+  Future<Map<String, NotifPref>> notificationPreferences();
+  Future<void> setNotificationPreference(String type, {bool? push, bool? inApp});
+
   Future<List<MemberStats>> groupStats(String groupId, {required DateTime from, required DateTime to});
   Future<SearchResults> search(String query, {String? groupId, List<TaskStatus>? status, String? assigneeId});
 }

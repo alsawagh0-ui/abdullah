@@ -42,6 +42,7 @@ class LocalApi implements AlMunjezApi {
   final Map<String, TaskComment> _comments = {};
   final List<ActivityEvent> _events = [];
   final Map<String, AppNotification> _notifications = {};
+  final Map<String, Map<String, NotifPref>> _prefs = {}; // userId -> type -> pref
   String? _currentUserId;
   int _eventSeq = 0;
 
@@ -84,6 +85,10 @@ class LocalApi implements AlMunjezApi {
       final notif = AppNotification.fromJson(n as Map<String, dynamic>);
       _notifications[notif.id] = notif;
     }
+    for (final p in (j['notification_prefs'] as List? ?? const [])) {
+      final row = p as Map<String, dynamic>;
+      _prefs.putIfAbsent(row['user_id'] as String, () => {})[row['type'] as String] = NotifPref.fromJson(row);
+    }
     _eventSeq = _events.isEmpty ? 0 : _events.map((e) => e.id).reduce(max);
     _currentUserId = j['current_user_id'] as String?;
   }
@@ -98,6 +103,10 @@ class LocalApi implements AlMunjezApi {
         'comments': _comments.values.map((e) => e.toJson()).toList(),
         'events': _events.map((e) => e.toJson()).toList(),
         'notifications': _notifications.values.map((e) => e.toJson()).toList(),
+        'notification_prefs': [
+          for (final entry in _prefs.entries)
+            for (final t in entry.value.entries) {'user_id': entry.key, 'type': t.key, ...t.value.toJson()},
+        ],
         'current_user_id': _currentUserId,
       }));
 
@@ -1031,6 +1040,17 @@ class LocalApi implements AlMunjezApi {
     for (final n in _notifications.values.where((n) => n.userId == uid && !n.isRead).toList()) {
       _notifications[n.id] = n.copyWith(readAt: DateTime.now());
     }
+    await _commit();
+  }
+
+  @override
+  Future<Map<String, NotifPref>> notificationPreferences() async => Map.of(_prefs[_uid()] ?? const {});
+
+  @override
+  Future<void> setNotificationPreference(String type, {bool? push, bool? inApp}) async {
+    final uid = _uid();
+    final existing = _prefs[uid]?[type] ?? const NotifPref();
+    _prefs.putIfAbsent(uid, () => {})[type] = existing.copyWith(push: push, inApp: inApp);
     await _commit();
   }
 

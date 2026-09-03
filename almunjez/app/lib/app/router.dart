@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/notif_prompt.dart';
 import '../core/providers.dart';
+import '../core/push.dart';
 import '../features/auth/auth_screens.dart';
 import '../features/groups/create_group_screen.dart';
 import '../features/groups/group_activity_screen.dart';
@@ -17,6 +19,7 @@ import '../features/groups/members_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/home/shell.dart';
 import '../features/notifications/notifications_screen.dart';
+import '../features/profile/notification_settings_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/profile/settings_screen.dart';
 import '../features/search/search_screen.dart';
@@ -41,13 +44,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       final inAuth = loc.startsWith('/welcome') || loc.startsWith('/sign-in');
       if (user == null) return inAuth ? null : '/welcome';
       if (user.displayName.trim().isEmpty) return loc == '/profile-setup' ? null : '/profile-setup';
-      if (inAuth || loc == '/profile-setup') return '/home';
+      // A5 (doc 02): explain once, only where push is meaningful (native iOS).
+      if (PushService.instance.supported && !NotifPromptStore.instance.seen) {
+        return loc == '/notify-permission' ? null : '/notify-permission';
+      }
+      if (inAuth || loc == '/profile-setup' || loc == '/notify-permission') return '/home';
       return null;
     },
     routes: [
       GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
       GoRoute(path: '/sign-in', builder: (_, __) => const SignInScreen()),
       GoRoute(path: '/profile-setup', builder: (_, __) => const ProfileSetupScreen()),
+      GoRoute(path: '/notify-permission', builder: (_, __) => const NotificationsPermissionScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, __, shell) => AppShell(shell: shell),
         branches: [
@@ -73,6 +81,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/search', builder: (_, s) => SearchScreen(groupId: s.uri.queryParameters['group'])),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(path: '/settings/notifications', builder: (_, __) => const NotificationSettingsScreen()),
     ],
   );
 });

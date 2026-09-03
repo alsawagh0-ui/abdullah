@@ -31,6 +31,15 @@ class SettingsScreen extends ConsumerWidget {
             showSelectedIcon: false,
           ),
           const SizedBox(height: 24),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: Text(s.notificationSettingsTitle),
+              trailing: const Icon(Icons.chevron_left_rounded),
+              onTap: () => context.push('/settings/notifications'),
+            ),
+          ),
+          const SizedBox(height: 8),
           if (!AppConfig.useSupabase) Card(child: ListTile(leading: const Icon(Icons.phonelink_off_rounded), title: Text(s.offlineMode, style: const TextStyle(fontSize: 13)))),
           const SizedBox(height: 24),
           OutlinedButton.icon(

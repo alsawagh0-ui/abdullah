@@ -104,4 +104,29 @@ void main() {
     final home = (await api.myGroups()).firstWhere((g) => g.group.name == 'البيت');
     expect((await api.members(home.group.id)).map((m) => m.user.displayName), contains('نورة'));
   });
+
+  testWidgets('notification settings (G3): toggling a category off persists through the API', (tester) async {
+    final api = await pumpApp(tester);
+    await tester.tap(find.text('تخطٍّ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تجربة سريعة بحساب تجريبي'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('homeProfileAvatar'))); // home → profile
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.settings_outlined)); // profile → settings
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('إعدادات الإشعارات'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('التعليقات'), findsOneWidget);
+    expect((await api.notificationPreferences())['task.comment'], isNull, reason: 'both on by default, no row needed');
+
+    await tester.tap(find.widgetWithText(SwitchListTile, 'التعليقات'));
+    await tester.pumpAndSettle();
+
+    expect((await api.notificationPreferences())['task.comment']!.push, isFalse);
+    final sw = tester.widget<SwitchListTile>(find.widgetWithText(SwitchListTile, 'التعليقات'));
+    expect(sw.value, isFalse);
+  });
 }

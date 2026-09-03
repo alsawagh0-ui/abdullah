@@ -35,7 +35,7 @@ class HomeScreen extends ConsumerWidget {
           IconButton(onPressed: () => context.push('/search'), icon: const Icon(Icons.search_rounded)),
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 12),
-            child: GestureDetector(onTap: () => context.push('/profile'), child: Avatar(name: user?.displayName ?? '', size: 34)),
+            child: GestureDetector(key: const Key('homeProfileAvatar'), onTap: () => context.push('/profile'), child: Avatar(name: user?.displayName ?? '', size: 34)),
           ),
         ],
       ),

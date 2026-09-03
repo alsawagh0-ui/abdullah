@@ -381,6 +381,23 @@ class SupabaseApi implements AlMunjezApi {
   @override
   Future<void> markAllRead() => _call(() => _client.rpc('mark_all_read'));
 
+  @override
+  Future<Map<String, NotifPref>> notificationPreferences() => _read(() async {
+        final uid = _client.auth.currentUser?.id;
+        if (uid == null) return {};
+        final r = await _client.from('notification_preferences').select().eq('user_id', uid);
+        return {for (final row in _rows(r)) row['type'] as String: NotifPref.fromJson(row)};
+      });
+
+  @override
+  Future<void> setNotificationPreference(String type, {bool? push, bool? inApp}) => _call(() async {
+        final uid = _client.auth.currentUser!.id;
+        final current = await _client.from('notification_preferences').select().eq('user_id', uid).eq('type', type).maybeSingle();
+        final existing = current == null ? const NotifPref() : NotifPref.fromJson(current);
+        final updated = existing.copyWith(push: push, inApp: inApp);
+        await _client.from('notification_preferences').upsert({'user_id': uid, 'type': type, ...updated.toJson()});
+      });
+
   // ---- stats & search
   @override
   Future<List<MemberStats>> groupStats(String groupId, {required DateTime from, required DateTime to}) => _read(() async {

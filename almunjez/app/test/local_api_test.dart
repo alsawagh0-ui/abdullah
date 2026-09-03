@@ -271,4 +271,37 @@ void main() {
     expect(a.currentUser?.displayName, 'عبدالله');
     expect((await a.groupTasks(g.id)).single.title, 'مهمة');
   });
+
+  group('notification preferences (G3, doc 08 §5)', () {
+    test('absent means both on by default; overrides persist and merge', () async {
+      await as_(mohammed);
+      expect(await api.notificationPreferences(), isEmpty);
+      await api.setNotificationPreference('task.comment', push: false);
+      var prefs = await api.notificationPreferences();
+      expect(prefs['task.comment']!.push, isFalse);
+      expect(prefs['task.comment']!.inApp, isTrue, reason: 'in-app is untouched by the push-only toggle');
+      await api.setNotificationPreference('task.comment', push: true);
+      prefs = await api.notificationPreferences();
+      expect(prefs['task.comment']!.push, isTrue);
+    });
+
+    test('preferences are per user and survive reload', () async {
+      final store = MemoryStore();
+      var a = LocalApi(store);
+      await a.signInWithApple();
+      final id1 = a.currentUser!.id;
+      await a.completeProfile(displayName: 'محمد');
+      await a.setNotificationPreference('task.due_soon', push: false);
+      await a.signInWithApple();
+      final id2 = a.currentUser!.id;
+      await a.completeProfile(displayName: 'خالد');
+      expect(await a.notificationPreferences(), isEmpty, reason: 'a different user has no overrides');
+      a = LocalApi(store);
+      await a.load();
+      await a.signInDemoAs(id1);
+      expect((await a.notificationPreferences())['task.due_soon']!.push, isFalse);
+      await a.signInDemoAs(id2);
+      expect(await a.notificationPreferences(), isEmpty);
+    });
+  });
 }

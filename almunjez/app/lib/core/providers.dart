@@ -41,6 +41,7 @@ FutureProviderFamily<T, A> _liveFamily<T, A>(Future<T> Function(AlMunjezApi api,
     });
 
 final myGroupsProvider = _live((api) => api.myGroups());
+final notificationPreferencesProvider = _live((api) => api.notificationPreferences());
 final myTasksProvider = _live((api) => api.myTasks());
 final personalTasksProvider = _live((api) => api.personalTasks());
 final notificationsProvider = _live((api) => api.notifications());

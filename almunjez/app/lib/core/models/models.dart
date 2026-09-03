@@ -739,6 +739,20 @@ class MemberStats {
       );
 }
 
+/// One row of notification_preferences (doc 08 §5). Absence for a type
+/// means both defaults apply — the API omits rows the user never overrode.
+class NotifPref {
+  const NotifPref({this.push = true, this.inApp = true});
+  final bool push;
+  final bool inApp;
+
+  NotifPref copyWith({bool? push, bool? inApp}) => NotifPref(push: push ?? this.push, inApp: inApp ?? this.inApp);
+
+  factory NotifPref.fromJson(Map<String, dynamic> j) => NotifPref(push: j['push'] as bool? ?? true, inApp: (j['in_app'] as bool?) ?? true);
+
+  Map<String, dynamic> toJson() => {'push': push, 'in_app': inApp};
+}
+
 class SearchResults {
   const SearchResults({this.tasks = const [], this.groups = const [], this.members = const []});
   final List<Task> tasks;

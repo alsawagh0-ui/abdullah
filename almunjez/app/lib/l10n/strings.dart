@@ -214,6 +214,17 @@ class S {
   String get markAllRead => t('تعليم الكل كمقروء', 'Mark all read');
   String get noNotifications => t('لا إشعارات', 'No notifications');
 
+  // notification preferences (G3, doc 08 §5)
+  String get notificationSettingsTitle => t('إعدادات الإشعارات', 'Notification settings');
+  String get notifCatTasks => t('مستجدات المهام', 'Task updates');
+  String get notifCatTasksHint => t('مهمة جديدة، أُسندت إليك، تولّاها أحد، أُنجزت أو أُلغيت', 'New task, assigned to you, claimed, completed or cancelled');
+  String get notifCatDeadlines => t('المواعيد والتذكيرات', 'Deadlines & reminders');
+  String get notifCatDeadlinesHint => t('اقتراب الموعد وتأخر المهمة', 'Approaching deadlines and overdue tasks');
+  String get notifCatGroups => t('نشاط المجموعات', 'Group activity');
+  String get notifCatGroupsHint => t('طلبات الانضمام، تغيّر الأدوار، نقل الملكية', 'Join requests, role changes, ownership transfer');
+  String get notifCatComments => t('التعليقات', 'Comments');
+  String get notifCatCommentsHint => t('تعليق جديد على مهمة تشارك فيها', 'A new comment on a task you are part of');
+
   // search
   String get search => t('البحث', 'Search');
   String get searchHint => t('ابحث في المهام والمجموعات والأعضاء', 'Search tasks, groups and members');

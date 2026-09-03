@@ -39,13 +39,7 @@ class _PushBindingsState extends ConsumerState<PushBindings> {
       final n = next.value;
       if (n != null) PushService.instance.setBadge(n);
     });
-    // once signed in with a name, ask for notification permission (A5)
-    ref.listen(currentUserProvider, (prev, next) {
-      final u = next.value;
-      if (u != null && u.displayName.isNotEmpty && prev?.value?.displayName.isEmpty != false) {
-        PushService.instance.requestPermission();
-      }
-    });
+    // Permission is requested explicitly from the A5 screen (router redirect), not here.
     return widget.child;
   }
 }

@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/config.dart';
 import '../../app/theme.dart';
+import '../../core/notif_prompt.dart';
 import '../../core/providers.dart';
+import '../../core/push.dart';
 import '../../l10n/strings.dart';
 import '../../shared/widgets.dart';
 
@@ -210,4 +212,47 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   void _submit(api) => guard(context, () => api.completeProfile(displayName: _name.text.trim()));
+}
+
+/// A5 — explain, then ask (doc 02 §1, brief §7). Shown once, only where push
+/// is meaningful (native iOS); the router redirect gates it (doc app/router.dart).
+class NotificationsPermissionScreen extends StatelessWidget {
+  const NotificationsPermissionScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = S.of(context);
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(color: AppTheme.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(36)),
+                child: const Icon(Icons.notifications_active_rounded, size: 60, color: AppTheme.accent),
+              ),
+              const SizedBox(height: 32),
+              Text(s.notificationsPermissionTitle, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              Text(s.notificationsPermissionBody, style: const TextStyle(fontSize: 16, color: AppTheme.muted, height: 1.6), textAlign: TextAlign.center),
+              const Spacer(),
+              FilledButton(onPressed: () => _finish(context, request: true), child: Text(s.enable)),
+              const SizedBox(height: 8),
+              TextButton(onPressed: () => _finish(context, request: false), child: Text(s.later)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _finish(BuildContext context, {required bool request}) async {
+    if (request) await PushService.instance.requestPermission();
+    await NotifPromptStore.instance.markSeen();
+    if (context.mounted) context.go('/home');
+  }
 }
