@@ -1,5 +1,10 @@
 import 'dart:async';
 
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
 import '../../models/enums.dart';
@@ -87,7 +92,28 @@ class SupabaseApi implements AlMunjezApi {
   Stream<AppUser?> get authState => _auth.stream;
 
   @override
-  Future<void> signInWithApple() => _call(() => _client.auth.signInWithOAuth(sb.OAuthProvider.apple));
+  /// Native sheet → identity token → Supabase (doc 05 §1). The nonce binds
+  /// the Apple token to this request; Apple returns the name only once, so it
+  /// is written to the profile immediately.
+  Future<void> signInWithApple() => _call(() async {
+        final raw = List.generate(32, (_) => Random.secure().nextInt(256));
+        final rawNonce = base64UrlEncode(raw).replaceAll('=', '');
+        final hashed = sha256.convert(utf8.encode(rawNonce)).toString();
+        final cred = await SignInWithApple.getAppleIDCredential(
+          scopes: [AppleIDAuthorizationScopes.email, AppleIDAuthorizationScopes.fullName],
+          nonce: hashed,
+        );
+        final idToken = cred.identityToken;
+        if (idToken == null) throw ApiException('apple_no_token');
+        await _client.auth.signInWithIdToken(provider: sb.OAuthProvider.apple, idToken: idToken, nonce: rawNonce);
+        final name = [cred.givenName, cred.familyName].whereType<String>().where((s) => s.isNotEmpty).join(' ');
+        await _loadProfile();
+        if (name.isNotEmpty && (_profile?.displayName.isEmpty ?? true)) {
+          await _client.rpc('complete_profile', params: {'p_display_name': name});
+          await _loadProfile();
+        }
+        _auth.add(_profile);
+      });
 
   @override
   Future<void> sendPhoneOtp(String phone) => _call(() => _client.auth.signInWithOtp(phone: phone));

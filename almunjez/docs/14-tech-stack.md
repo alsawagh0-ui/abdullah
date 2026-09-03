@@ -9,7 +9,7 @@
 | Navigation | go_router | Navigator 2 by hand | deep links and push routes declaratively |
 | Local cache | MVP: the on-device rules engine persists JSON via `shared_preferences` (local mode); Phase 2: drift (SQLite) read cache + write queue for Supabase mode | Hive / Isar | typed SQL, migrations, good for offline read cache and later write queue |
 | Backend platform | **Supabase** (Postgres 15+, Auth, PostgREST, Realtime, Storage, Edge Functions, pg_cron) | Firebase; custom NestJS + Postgres | see §3 |
-| Push | APNs via **Firebase Cloud Messaging** (`firebase_messaging`) with the APNs key uploaded to FCM | direct APNs from the Edge Function | FCM handles token lifecycle, works unchanged if Android is added; the outbox design does not care which sender is used |
+| Push | Direct APNs: native Swift registration (`ios/Runner/AppDelegate.swift`) + a Supabase Edge Function sender (`backend/functions/push-sender`) | Firebase Cloud Messaging | one fewer third party for an iPhone-first MVP; the outbox design in doc 08 is sender-agnostic, so FCM can be swapped in later without touching the schema |
 | Background jobs | pg_cron + Edge Functions (Deno/TypeScript) | separate worker service | zero extra infra in MVP |
 | Files | Supabase Storage (S3-backed), signed URLs | Cloudflare R2 | integrated policies |
 | Auth providers | Sign in with Apple, phone OTP (Twilio via Supabase) | — | doc 05 |

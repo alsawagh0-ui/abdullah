@@ -52,6 +52,7 @@ Arabic terminology verbatim wherever it appears in the UI.
 | 12 | [Edge cases](docs/12-edge-cases.md) | Concurrency, membership churn, time zones, Arabic text, offline |
 | 13 | [Security risks](docs/13-security-risks.md) | Threat model and the mitigation each threat maps to |
 | 14 | [Recommended technology stack](docs/14-tech-stack.md) | Client, backend, push, CI, and why |
+| 15 | [Launch checklist](docs/15-launch-checklist.md) | Exactly what to do with your own Apple Developer and Supabase accounts, step by step |
 
 ## Layout
 

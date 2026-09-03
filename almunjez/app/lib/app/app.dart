@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/providers.dart';
+import 'push_bindings.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -27,6 +28,7 @@ class AlMunjezApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
       ],
       routerConfig: router,
+      builder: (context, child) => PushBindings(child: child ?? const SizedBox.shrink()),
     );
   }
 }

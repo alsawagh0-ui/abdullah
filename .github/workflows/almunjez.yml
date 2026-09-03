@@ -1,0 +1,92 @@
+name: AlMunjez — analyze, test, iOS build, TestFlight
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "claude/**"]
+    paths: ["almunjez/app/**", ".github/workflows/almunjez.yml"]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: almunjez/app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  ios-build:
+    # Compiles the real iOS project (CocoaPods, mobile_scanner, share_plus …) without signing.
+    runs-on: macos-latest
+    needs: check
+    defaults: { run: { working-directory: almunjez/app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, cache: true }
+      - run: flutter pub get
+      - run: flutter build ios --release --no-codesign
+      - run: flutter build ipa --release --no-codesign || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: almunjez-ios-unsigned
+          path: almunjez/app/build/ios/iphoneos/Runner.app
+          retention-days: 14
+
+  testflight:
+    # Runs only when the App Store Connect secrets exist (see docs/15-launch-checklist.md).
+    runs-on: macos-latest
+    needs: ios-build
+    if: github.event_name == 'workflow_dispatch'
+    defaults: { run: { working-directory: almunjez/app } }
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      IOS_DIST_P12_BASE64: ${{ secrets.IOS_DIST_P12_BASE64 }}
+      IOS_DIST_P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
+      IOS_PROVISION_BASE64: ${{ secrets.IOS_PROVISION_BASE64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secrets
+        id: gate
+        run: |
+          if [ -z "$ASC_KEY_ID" ] || [ -z "$IOS_DIST_P12_BASE64" ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "TestFlight secrets not set; skipping."; fi
+      - uses: subosito/flutter-action@v2
+        if: steps.gate.outputs.skip != 'true'
+        with: { channel: stable, cache: true }
+      - name: Install signing certificate and profile
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          KEYCHAIN=$RUNNER_TEMP/build.keychain-db
+          security create-keychain -p "" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "" "$KEYCHAIN"
+          echo "$IOS_DIST_P12_BASE64" | base64 --decode > $RUNNER_TEMP/dist.p12
+          security import $RUNNER_TEMP/dist.p12 -P "$IOS_DIST_P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          security list-keychain -d user -s "$KEYCHAIN"
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$IOS_PROVISION_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/almunjez.mobileprovision
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+      - name: Build signed IPA
+        if: steps.gate.outputs.skip != 'true'
+        run: |
+          cat > $RUNNER_TEMP/export.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          flutter pub get
+          flutter build ipa --release --export-options-plist=$RUNNER_TEMP/export.plist --build-number=${{ github.run_number }}
+      - name: Upload to TestFlight
+        if: steps.gate.outputs.skip != 'true'
+        run: xcrun altool --upload-app -f build/ios/ipa/*.ipa -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
