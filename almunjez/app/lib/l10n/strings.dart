@@ -39,6 +39,8 @@ class S {
   String get sendCode => t('إرسال الرمز', 'Send code');
   String get verificationCode => t('رمز التحقق', 'Verification code');
   String get codeSentTo => t('أرسلنا رمزاً إلى', 'We sent a code to');
+  String get signInWithEmail => t('المتابعة بالبريد الإلكتروني', 'Continue with email');
+  String get email => t('البريد الإلكتروني', 'Email');
   String get verify => t('تحقق', 'Verify');
   String get completeProfile => t('إكمال الملف', 'Complete your profile');
   String get yourName => t('اسمك كما يراه الأعضاء', 'Your name as members see it');
@@ -276,6 +278,9 @@ class S {
         'group_archived' => t('المجموعة مؤرشفة', 'The group is archived'),
         'display_name_required' => t('اكتب اسمك', 'Enter your name'),
         'network' => t('تعذّر الاتصال بالخادم', 'Could not reach the server'),
+        // Auth backend errors vary by provider/config (e.g. no SMS provider set up
+        // yet) — show Supabase's own message rather than a generic fallback.
+        String c when c.startsWith('auth_') => (detail['message'] as String?) ?? t('خطأ في تسجيل الدخول', 'Sign-in error'),
         _ => t('حدث خطأ غير متوقع', 'Something went wrong'),
       };
 

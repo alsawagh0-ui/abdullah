@@ -85,14 +85,27 @@ class SignInScreen extends ConsumerStatefulWidget {
 
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _phone = TextEditingController();
-  final _code = TextEditingController();
-  bool _codeSent = false;
+  final _phoneCode = TextEditingController();
+  bool _phoneCodeSent = false;
+
+  final _email = TextEditingController();
+  final _emailCode = TextEditingController();
+  bool _emailCodeSent = false;
+
   bool _busy = false;
 
   Future<void> _run(Future<void> Function() f) async {
     setState(() => _busy = true);
     await guard(context, f);
     if (mounted) setState(() => _busy = false);
+  }
+
+  /// Kuwait-first MVP (doc 19): if the user just typed the local number, add
+  /// the country code Supabase's E.164-only phone auth requires.
+  String _normalizePhone(String raw) {
+    final digits = raw.trim();
+    if (digits.startsWith('+')) return digits;
+    return '+965$digits';
   }
 
   @override
@@ -116,9 +129,47 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               label: Text(s.signInWithApple),
             ),
             const SizedBox(height: 24),
+            Text(s.signInWithEmail, style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            if (!_emailCodeSent) ...[
+              TextField(
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                textDirection: TextDirection.ltr,
+                decoration: InputDecoration(hintText: 'name@example.com', labelText: s.email),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: _busy || !_email.text.contains('@')
+                    ? null
+                    : () => _run(() async {
+                          await api.sendEmailOtp(_email.text.trim());
+                          setState(() => _emailCodeSent = true);
+                        }),
+                child: Text(s.sendCode),
+              ),
+            ] else ...[
+              Text('${s.codeSentTo} ${_email.text.trim()}', style: const TextStyle(color: AppTheme.muted)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _emailCode,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                maxLength: 6,
+                style: const TextStyle(fontSize: 28, letterSpacing: 8),
+                decoration: InputDecoration(labelText: s.verificationCode, counterText: ''),
+                onChanged: (v) {
+                  if (v.length == 6 && !_busy) _run(() => api.verifyEmailOtp(_email.text.trim(), v));
+                },
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(onPressed: _busy ? null : () => _run(() => api.verifyEmailOtp(_email.text.trim(), _emailCode.text.trim())), child: Text(s.verify)),
+              TextButton(onPressed: () => setState(() => _emailCodeSent = false), child: Text(s.cancel)),
+            ],
+            const SizedBox(height: 24),
             Text(s.signInWithPhone, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            if (!_codeSent) ...[
+            if (!_phoneCodeSent) ...[
               TextField(
                 controller: _phone,
                 keyboardType: TextInputType.phone,
@@ -130,28 +181,28 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 onPressed: _busy || _phone.text.trim().length < 8
                     ? null
                     : () => _run(() async {
-                          await api.sendPhoneOtp(_phone.text.trim());
-                          setState(() => _codeSent = true);
+                          await api.sendPhoneOtp(_normalizePhone(_phone.text));
+                          setState(() => _phoneCodeSent = true);
                         }),
                 child: Text(s.sendCode),
               ),
             ] else ...[
-              Text('${s.codeSentTo} ${_phone.text.trim()}', style: const TextStyle(color: AppTheme.muted)),
+              Text('${s.codeSentTo} ${_normalizePhone(_phone.text)}', style: const TextStyle(color: AppTheme.muted)),
               const SizedBox(height: 8),
               TextField(
-                controller: _code,
+                controller: _phoneCode,
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 maxLength: 6,
                 style: const TextStyle(fontSize: 28, letterSpacing: 8),
                 decoration: InputDecoration(labelText: s.verificationCode, counterText: ''),
                 onChanged: (v) {
-                  if (v.length == 6 && !_busy) _run(() => api.verifyPhoneOtp(_phone.text.trim(), v));
+                  if (v.length == 6 && !_busy) _run(() => api.verifyPhoneOtp(_normalizePhone(_phone.text), v));
                 },
               ),
               const SizedBox(height: 12),
-              OutlinedButton(onPressed: _busy ? null : () => _run(() => api.verifyPhoneOtp(_phone.text.trim(), _code.text.trim())), child: Text(s.verify)),
-              TextButton(onPressed: () => setState(() => _codeSent = false), child: Text(s.cancel)),
+              OutlinedButton(onPressed: _busy ? null : () => _run(() => api.verifyPhoneOtp(_normalizePhone(_phone.text), _phoneCode.text.trim())), child: Text(s.verify)),
+              TextButton(onPressed: () => setState(() => _phoneCodeSent = false), child: Text(s.cancel)),
             ],
             if (api is LocalApi) ...[
               const SizedBox(height: 32),

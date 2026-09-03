@@ -122,6 +122,12 @@ class SupabaseApi implements AlMunjezApi {
   Future<void> verifyPhoneOtp(String phone, String code) => _call(() => _client.auth.verifyOTP(type: sb.OtpType.sms, phone: phone, token: code));
 
   @override
+  Future<void> sendEmailOtp(String email) => _call(() => _client.auth.signInWithOtp(email: email, shouldCreateUser: true));
+
+  @override
+  Future<void> verifyEmailOtp(String email, String code) => _call(() => _client.auth.verifyOTP(type: sb.OtpType.email, email: email, token: code));
+
+  @override
   Future<void> signInDemo() async => throw ApiException('demo_unavailable');
 
   @override

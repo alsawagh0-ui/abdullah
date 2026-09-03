@@ -282,6 +282,16 @@ class LocalApi implements AlMunjezApi {
   }
 
   @override
+  Future<void> sendEmailOtp(String email) async {}
+
+  @override
+  Future<void> verifyEmailOtp(String email, String code) async {
+    if (code.length != 6) _fail('invalid_otp');
+    final existing = _users.values.where((u) => u.avatarPath == 'email:$email').firstOrNull;
+    await _signInAs(existing ?? AppUser(id: _id(), displayName: '', avatarPath: 'email:$email'));
+  }
+
+  @override
   Future<void> signInDemo() async {
     if (_users.containsKey(DemoSeed.abdullah)) {
       _currentUserId = DemoSeed.abdullah;

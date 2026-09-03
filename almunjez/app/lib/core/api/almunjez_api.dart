@@ -16,6 +16,11 @@ abstract class AlMunjezApi {
   Future<void> signInWithApple();
   Future<void> sendPhoneOtp(String phone);
   Future<void> verifyPhoneOtp(String phone, String code);
+
+  /// Email OTP: works on a fresh Supabase project with no extra setup
+  /// (unlike phone, which needs a paid SMS provider configured first).
+  Future<void> sendEmailOtp(String email);
+  Future<void> verifyEmailOtp(String email, String code);
   Future<void> signInDemo();
   Future<void> signOut();
   Future<AppUser> completeProfile({required String displayName, String? locale});
