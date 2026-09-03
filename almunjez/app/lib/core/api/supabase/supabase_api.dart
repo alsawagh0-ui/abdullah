@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
+import '../../../app/config.dart';
 import '../../models/enums.dart';
 import '../../models/models.dart';
 import '../almunjez_api.dart';
@@ -123,7 +124,7 @@ class SupabaseApi implements AlMunjezApi {
   @override
   Future<void> signInWithGoogle() => _call(() => _client.auth.signInWithOAuth(
         sb.OAuthProvider.google,
-        redirectTo: kIsWeb ? null : 'almunjez://login-callback/',
+        redirectTo: kIsWeb ? AppConfig.webAppUrl : 'almunjez://login-callback/',
       ));
 
   @override
@@ -133,7 +134,11 @@ class SupabaseApi implements AlMunjezApi {
   Future<void> verifyPhoneOtp(String phone, String code) => _call(() => _client.auth.verifyOTP(type: sb.OtpType.sms, phone: phone, token: code));
 
   @override
-  Future<void> sendEmailOtp(String email) => _call(() => _client.auth.signInWithOtp(email: email, shouldCreateUser: true));
+  Future<void> sendEmailOtp(String email) => _call(() => _client.auth.signInWithOtp(
+        email: email,
+        shouldCreateUser: true,
+        emailRedirectTo: kIsWeb ? AppConfig.webAppUrl : 'almunjez://login-callback/',
+      ));
 
   @override
   Future<void> verifyEmailOtp(String email, String code) => _call(() => _client.auth.verifyOTP(type: sb.OtpType.email, email: email, token: code));

@@ -19,4 +19,10 @@ abstract final class AppConfig {
 
   /// Universal link host used in QR payloads (doc 02 §4, doc 12 §E18).
   static const joinLinkBase = 'https://almunjez.app/join/';
+
+  /// Where Supabase should send the browser back after an email magic-link
+  /// or OAuth redirect completes. Must also be added to Supabase →
+  /// Authentication → URL Configuration → Redirect URLs, or Supabase
+  /// silently ignores it and falls back to the (unset) Site URL instead.
+  static const webAppUrl = 'https://alsawagh0-ui.github.io/abdullah/almunjez/';
 }
