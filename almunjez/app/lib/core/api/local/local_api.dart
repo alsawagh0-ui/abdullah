@@ -272,6 +272,9 @@ class LocalApi implements AlMunjezApi {
   Future<void> signInWithApple() => _signInAs(AppUser(id: _id(), displayName: ''));
 
   @override
+  Future<void> signInWithGoogle() => _signInAs(AppUser(id: _id(), displayName: ''));
+
+  @override
   Future<void> sendPhoneOtp(String phone) async {}
 
   @override

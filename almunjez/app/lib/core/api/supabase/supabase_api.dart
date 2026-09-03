@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 
@@ -114,6 +115,16 @@ class SupabaseApi implements AlMunjezApi {
         }
         _auth.add(_profile);
       });
+
+  /// OAuth redirect (browser on web, in-app browser tab on iOS via the
+  /// almunjez:// scheme already registered in Info.plist). Needs a Google
+  /// Cloud OAuth client configured in Supabase → Authentication → Providers
+  /// → Google — free to create, unlike Apple's paid developer account.
+  @override
+  Future<void> signInWithGoogle() => _call(() => _client.auth.signInWithOAuth(
+        sb.OAuthProvider.google,
+        redirectTo: kIsWeb ? null : 'almunjez://login-callback/',
+      ));
 
   @override
   Future<void> sendPhoneOtp(String phone) => _call(() => _client.auth.signInWithOtp(phone: phone));

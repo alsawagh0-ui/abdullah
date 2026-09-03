@@ -14,6 +14,7 @@ abstract class AlMunjezApi {
   AppUser? get currentUser;
   Stream<AppUser?> get authState;
   Future<void> signInWithApple();
+  Future<void> signInWithGoogle();
   Future<void> sendPhoneOtp(String phone);
   Future<void> verifyPhoneOtp(String phone, String code);
 

@@ -33,6 +33,7 @@ class S {
   String get welcome3Body => t('مجموعات خاصة بموافقة على الانضمام: العائلة، الشركة، الفريق، اللجنة.', 'Private groups with join approval: family, company, team, committee.');
   String get signIn => t('تسجيل الدخول', 'Sign in');
   String get signInWithApple => t('المتابعة بحساب Apple', 'Continue with Apple');
+  String get signInWithGoogle => t('المتابعة بحساب Google', 'Continue with Google');
   String get signInWithPhone => t('المتابعة برقم الجوال', 'Continue with phone');
   String get signInDemo => t('تجربة سريعة بحساب تجريبي', 'Quick demo account');
   String get phoneNumber => t('رقم الجوال', 'Phone number');

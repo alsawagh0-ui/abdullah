@@ -128,6 +128,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               icon: const Icon(Icons.apple, size: 26),
               label: Text(s.signInWithApple),
             ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.black87, side: const BorderSide(color: Color(0xFFDADCE0))),
+              onPressed: _busy ? null : () => _run(api.signInWithGoogle),
+              icon: const _GoogleG(),
+              label: Text(s.signInWithGoogle),
+            ),
             const SizedBox(height: 24),
             Text(s.signInWithEmail, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
@@ -306,4 +313,44 @@ class NotificationsPermissionScreen extends StatelessWidget {
     await NotifPromptStore.instance.markSeen();
     if (context.mounted) context.go('/home');
   }
+}
+
+/// Minimal "G" mark in Google's brand colours — avoids shipping a logo asset.
+class _GoogleG extends StatelessWidget {
+  const _GoogleG();
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 20,
+        height: 20,
+        child: CustomPaint(painter: _GoogleGPainter()),
+      );
+}
+
+class _GoogleGPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.width / 2;
+    final center = Offset(r, r);
+    final stroke = size.width * 0.22;
+    final rect = Rect.fromCircle(center: center, radius: r - stroke / 2);
+    void arc(double startDeg, double sweepDeg, Color color) {
+      final paint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..strokeCap = StrokeCap.butt;
+      canvas.drawArc(rect, startDeg * 3.14159265 / 180, sweepDeg * 3.14159265 / 180, false, paint);
+    }
+
+    arc(-90, 90, const Color(0xFF4285F4));
+    arc(0, 90, const Color(0xFF34A853));
+    arc(90, 90, const Color(0xFFFBBC05));
+    arc(180, 90, const Color(0xFFEA4335));
+    final barPaint = Paint()..color = const Color(0xFF4285F4);
+    canvas.drawRect(Rect.fromLTWH(center.dx, center.dy - stroke / 2, r - stroke / 2, stroke), barPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
