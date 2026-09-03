@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/config.dart';
 import '../../app/theme.dart';
+import '../../core/api/local/local_api.dart';
 import '../../core/notif_prompt.dart';
 import '../../core/providers.dart';
 import '../../core/push.dart';
@@ -153,7 +153,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               OutlinedButton(onPressed: _busy ? null : () => _run(() => api.verifyPhoneOtp(_phone.text.trim(), _code.text.trim())), child: Text(s.verify)),
               TextButton(onPressed: () => setState(() => _codeSent = false), child: Text(s.cancel)),
             ],
-            if (!AppConfig.useSupabase) ...[
+            if (api is LocalApi) ...[
               const SizedBox(height: 32),
               const Divider(),
               const SizedBox(height: 16),

@@ -1,11 +1,20 @@
-/// Build-time configuration. Without Supabase values the app runs on the
-/// local rules engine (data stays on the device).
-///
-///   flutter run --dart-define=SUPABASE_URL=https://xxx.supabase.co \
-///               --dart-define=SUPABASE_ANON_KEY=eyJ...
+/// Build-time configuration. Defaults to this project's real Supabase
+/// instance; pass empty --dart-define values to fall back to the local
+/// rules engine (data stays on the device) for offline development/tests.
 abstract final class AppConfig {
-  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  // Defaults point at the project's own Supabase instance. The anon/publishable
+  // key is the public client key by design (Row-Level Security is what
+  // actually protects data, not the key's secrecy) — safe to ship in source,
+  // unlike the service_role key, which must never appear here.
+  // Pass --dart-define=SUPABASE_URL= (empty) to force local/offline mode instead.
+  static const supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://occukboecvnzjnatubre.supabase.co',
+  );
+  static const supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9jY3VrYm9lY3ZuempuYXR1YnJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg0MTk2NzUsImV4cCI6MjEwMzk5NTY3NX0.6p49Fd2Mj1jErbVLGAzuMDT-573sstOHj0qkr30kPkc',
+  );
   static bool get useSupabase => supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 
   /// Universal link host used in QR payloads (doc 02 §4, doc 12 §E18).

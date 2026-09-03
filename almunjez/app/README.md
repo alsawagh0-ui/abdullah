@@ -17,12 +17,17 @@ task, task with comments, today, notifications, new task, company dashboard, col
 
 ```bash
 flutter pub get
-flutter run                                   # local mode: data stays on the device, demo account available
-flutter run --dart-define=SUPABASE_URL=https://xxx.supabase.co \
-            --dart-define=SUPABASE_ANON_KEY=eyJ...   # real backend (schema applied per ../backend/README.md)
-flutter test                                  # 20 tests: engine rules + full-app widget flows
+flutter run                                   # defaults to the real Supabase project (lib/app/config.dart)
+flutter run --dart-define=SUPABASE_URL=       # local mode instead: data stays on the device, demo account available
+flutter test                                  # 23 tests: engine rules + full-app widget flows (always run on LocalApi)
 flutter analyze
 flutter build ipa --release                   # macOS + Xcode; bundle id kw.almunjez.almunjez
+```
+
+Point at a *different* Supabase project (staging, a fork) with both flags:
+
+```bash
+flutter run --dart-define=SUPABASE_URL=https://xxx.supabase.co --dart-define=SUPABASE_ANON_KEY=eyJ...
 ```
 
 ## Two backends, one contract
@@ -31,8 +36,11 @@ flutter build ipa --release                   # macOS + Xcode; bundle id kw.almu
 |---|---|---|
 | Where | `lib/core/api/local/` | `lib/core/api/supabase/` |
 | What | Dart port of the SQL rules: permission resolution, task state machine, activity log, notification fan-out, Arabic search normalisation | RPC calls + RLS-filtered reads + Realtime |
-| When | no `SUPABASE_URL` at build time; all tests | production |
+| When | `--dart-define=SUPABASE_URL=` (empty), or any code that constructs `LocalApi` directly — the widget and engine tests always do this, regardless of build flags | default (`lib/app/config.dart` ships this project's real URL and anon key) |
 | Data | JSON in `shared_preferences` on the device | Postgres |
+
+The demo-sign-in button and the "local mode" banner are driven by the *actual injected instance*
+(`api is LocalApi`), not the build flag, so they show correctly however the app was launched.
 
 Screens only ever talk to `AlMunjezApi` (`lib/core/api/almunjez_api.dart`), so nothing in `features/`
 knows which backend it is running on. The local engine is tested against the same scenarios as
@@ -59,13 +67,33 @@ lib/
 `almunjez://join/{code}` (also the QR payload as `https://almunjez.app/join/{code}`),
 `almunjez://notifications`. Routes are declared in `lib/app/router.dart`.
 
+## Backend status
+
+`lib/app/config.dart` ships this project's real Supabase URL and anon key as the default —
+`flutter run` targets it with no flags. The schema (`backend/schema/001_initial.sql`) has been
+applied to it directly through the Supabase SQL Editor.
+
+**Not verified from this environment:** the sandbox this app was built in has no network route to
+`*.supabase.co` (an organisation egress policy, confirmed via the proxy's own diagnostic — a
+403 on every CONNECT attempt, not a bug to work around). So while the code compiles clean against
+the real project (`flutter build web`, `flutter analyze`, all 23 tests — none of which touch the
+network, since tests always inject `LocalApi` directly), nobody has actually run this app against
+a live network connection yet. First real run, on a machine with normal internet access:
+
+```bash
+flutter run -d chrome        # or -d <ios-device-id> from a Mac
+```
+
+then walk sign-in → create a group → claim a task, and confirm it shows up in the Supabase Table
+Editor. If Sign in with Apple errors, add the Apple Services ID under Supabase → Authentication →
+Providers → Apple (needs an Apple Developer account, separate from this).
+
 ## Not wired yet (needs accounts or a Mac)
 
-* **Push delivery.** The backend outbox and the in-app inbox are complete; the APNs sender
-  (Edge Function + FCM/APNs key) and `firebase_messaging` registration need a Firebase/Apple
-  developer account. `registerDevice(token)` is in the API contract ready for it.
-* **Sign in with Apple.** Wired through Supabase OAuth; needs the Apple Services ID in the
-  Supabase dashboard. Phone OTP needs the SMS provider configured there.
+* **Push delivery.** The backend outbox, the in-app inbox, `backend/functions/push-sender`, the
+  iOS `AppDelegate.swift` APNs registration, and the Dart `PushService`/A5 consent screen are all
+  written and wired end to end — the only missing piece is an Apple Developer account to get a
+  real APNs key and turn the Push Notifications capability on for the app ID.
 * **Proof photos/files.** Storage upload UI is Phase 2 (doc 11); proof-by-note works now.
 * **Signed iOS build.** Needs macOS/Xcode; the `ios/` project is generated with bundle id
   `kw.almunjez.almunjez`, Arabic display name, camera permission text, portrait only.

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/config.dart';
 import '../../app/theme.dart';
+import '../../core/api/local/local_api.dart';
 import '../../core/providers.dart';
 import '../../l10n/strings.dart';
 import '../../shared/widgets.dart';
@@ -40,7 +40,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          if (!AppConfig.useSupabase) Card(child: ListTile(leading: const Icon(Icons.phonelink_off_rounded), title: Text(s.offlineMode, style: const TextStyle(fontSize: 13)))),
+          if (api is LocalApi) Card(child: ListTile(leading: const Icon(Icons.phonelink_off_rounded), title: Text(s.offlineMode, style: const TextStyle(fontSize: 13)))),
           const SizedBox(height: 24),
           OutlinedButton.icon(
             onPressed: () async {
