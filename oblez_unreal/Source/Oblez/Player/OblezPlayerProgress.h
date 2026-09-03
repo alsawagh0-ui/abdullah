@@ -85,6 +85,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Oblez|Player")
 	bool CanBuyProperty() const { return Tier == EOblezProgressionTier::Pro && Money >= PropertyPrice; }
 
+	/// static constexpr ما تنعرض بالبلوبرنت بذاتها — هذي البوابة لقراءتها
+	/// من الـ UI (مثلاً لعرض "5000$" أو حساب شريط تقدّم الفلوس بالمتجر).
+	UFUNCTION(BlueprintPure, Category = "Oblez|Player")
+	static int32 GetPropertyPrice() { return PropertyPrice; }
+
 	UFUNCTION(BlueprintCallable, Category = "Oblez|Player")
 	void ChangeEnergy(int32 Amount);
 

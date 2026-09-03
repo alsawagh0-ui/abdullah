@@ -90,9 +90,14 @@ Blueprint** → سمّه `WBP_RoomHUD`.
     (أزرق فاتح)، الظهر (كهرماني)، المغرب (برتقالي)، الليل (نيلي).
 
 **أزرار (`On Clicked` لكل واحد):**
-- `Btn_AimTrainer` → `Open Level (by Name)` = `"AimTrainerLevel"` (أو
-  افتح Widget لاحقاً لو قررت تسويها Widget بدل مستوى منفصل).
-- `Btn_Shop` → `Add to Viewport` لـ `WBP_Shop` (تبنيه بخطوة لاحقة).
+- `Btn_AimTrainer` → `Create Widget` من `WBP_AimTrainer` → `Add to
+  Viewport` (**مو** `Open Level`! — انتقال مستوى يهدم `Level
+  Blueprint` الحالي، يعني مؤقت الساعة وجدولة اتصالات المدير بالفقرتين
+  3 و4 توقف. الغرض من نسخة Flutter إن هالمؤقتات تستمر بالخلفية وأنت
+  تلعب Aim Trainer، فلازم يضل نفس المستوى — راجع
+  `docs/AimTrainer_BuildGuide.md`).
+- `Btn_Shop` → `Add to Viewport` لـ `WBP_Shop` (راجع
+  `docs/Shop_BuildGuide.md`).
 - `Btn_EndDay` → `Create Widget` من `WBP_DailyChoiceDialog` (قسم 4
   تحت) → `Add to Viewport`.
 

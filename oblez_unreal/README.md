@@ -23,10 +23,17 @@ Unreal Engine (المحرر + أدوات البناء) **مو مثبت بالب�
 
 ## الخطوات عندك (بجهازك)
 
-دليل تفصيلي خطوة-بخطوة لبناء أول مستوى (الغرفة الرئيسية) موجود بـ
-[`docs/RoomLevel_BuildGuide.md`](docs/RoomLevel_BuildGuide.md) —
-يغطي المستوى، الـ Widget Blueprint، مؤقت الساعة، نظام اتصالات المدير،
-وحوار القرار اليومي، بالضبط بالمقابل مع `RoomScreen` بنسخة Flutter.
+أدلة تفصيلية خطوة-بخطوة (اتبعها بهالترتيب، كل وحدة تعتمد على اللي قبلها):
+
+1. [`docs/RoomLevel_BuildGuide.md`](docs/RoomLevel_BuildGuide.md) —
+   المستوى، `WBP_RoomHUD`، مؤقت الساعة، نظام اتصالات المدير، وحوار
+   القرار اليومي (يقابل `RoomScreen`).
+2. [`docs/Shop_BuildGuide.md`](docs/Shop_BuildGuide.md) — متجر
+   بأربع تبويبات (عتاد/شبكة/فلكس/الهدف النهائي) عبر `WidgetSwitcher`
+   (يقابل `ShopScreen`).
+3. [`docs/AimTrainer_BuildGuide.md`](docs/AimTrainer_BuildGuide.md) —
+   لعبة الأهداف المصغرة كويدجت فوق الغرفة، لا كمستوى منفصل (عشان
+   مؤقتات الغرفة تستمر بالخلفية) (يقابل `AimTrainerScreen`).
 
 ملخص سريع:
 
