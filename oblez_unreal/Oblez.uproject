@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.4",
+	"Category": "",
+	"Description": "أوبلز — محاكاة ساخرة لحياة قيمر عربي بين الدوام والقيمنق",
+	"Modules": [
+		{
+			"Name": "Oblez",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
