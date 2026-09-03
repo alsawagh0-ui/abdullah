@@ -33,6 +33,7 @@ class _RoomScreenState extends State<RoomScreen> {
   final _random = Random();
   bool _callActive = false;
   Timer? _hourTimer;
+  ProgressionTier? _lastTier;
 
   @override
   void initState() {
@@ -79,12 +80,10 @@ class _RoomScreenState extends State<RoomScreen> {
     if (ignored) {
       player.ignoreManagerCall();
       if (player.isFired) {
+        final reason = ComedyLines
+            .firedReasons[_random.nextInt(ComedyLines.firedReasons.length)];
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => const GameOverScreen(
-              reason: 'فُصلت من الشغل بعد ثلاث اتصالات متجاهلة!',
-            ),
-          ),
+          MaterialPageRoute(builder: (_) => GameOverScreen(reason: reason)),
         );
         return;
       }
@@ -111,9 +110,25 @@ class _RoomScreenState extends State<RoomScreen> {
     );
   }
 
+  void _maybeAnnounceLevelUp(PlayerState player) {
+    final tierRose = _lastTier != null &&
+        player.tier.index > _lastTier!.index &&
+        player.tier != ProgressionTier.ending;
+    _lastTier = player.tier;
+    if (!tierRose) return;
+
+    final message = ComedyLines
+        .levelUpTaunts[_random.nextInt(ComedyLines.levelUpTaunts.length)];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerState>();
+    _maybeAnnounceLevelUp(player);
 
     return Scaffold(
       appBar: AppBar(

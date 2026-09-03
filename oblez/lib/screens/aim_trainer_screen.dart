@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/comedy_lines.dart';
 import '../logic/aim_trainer_logic.dart';
 import '../logic/energy_logic.dart';
 import '../logic/ping_logic.dart';
@@ -25,6 +27,7 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
 
   final _logic = AimTrainerLogic();
   final _pingLogic = PingLogic();
+  final _random = Random();
 
   int _nextId = 0;
   AimTarget? _current;
@@ -32,6 +35,7 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
   int _combo = 0;
   int _secondsLeft = _sessionSeconds;
   String? _feedback;
+  bool _feedbackIsPositive = false;
 
   Timer? _sessionTimer;
   Timer? _targetTimer;
@@ -94,12 +98,15 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
     _targetTimer = Timer(lifetime, _onTargetMissed);
   }
 
+  String _randomLine(List<String> lines) => lines[_random.nextInt(lines.length)];
+
   void _onTargetMissed() {
     if (!mounted) return;
     setState(() {
       _combo = 0;
       _current = null;
-      _feedback = null;
+      _feedback = _randomLine(ComedyLines.rankDownTaunts);
+      _feedbackIsPositive = false;
     });
     _spawnTarget();
   }
@@ -108,15 +115,24 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
     if (_current == null) return;
 
     if (_pingLogic.rollLagSpike(_player.networkLevel)) {
-      setState(() => _feedback = 'تقطيع! ما سجلت الضغطة 😩');
+      setState(() {
+        _feedback = _randomLine(ComedyLines.lagSpikeLines);
+        _feedbackIsPositive = false;
+      });
       return;
     }
 
     _targetTimer?.cancel();
+    final newCombo = _combo + 1;
     setState(() {
       _score += _logic.scoreForHit(_combo);
-      _combo += 1;
-      _feedback = null;
+      _combo = newCombo;
+      if (newCombo % 5 == 0) {
+        _feedback = _randomLine(ComedyLines.hypeComments);
+        _feedbackIsPositive = true;
+      } else {
+        _feedback = null;
+      }
     });
     _spawnTarget();
   }
@@ -129,12 +145,9 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
     final result = _player.recordAimTrainerResult(_score);
 
     if (result.kicked) {
+      final reason = _randomLine(ComedyLines.kickedReasons);
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (_) => const GameOverScreen(
-            reason: 'خسرت 3 جولات رانك على التوالي... انطردت من الفريق! 😢',
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => GameOverScreen(reason: reason)),
         (route) => false,
       );
       return;
@@ -183,7 +196,11 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
                 ? null
                 : Text(
                     _feedback!,
-                    style: const TextStyle(color: Colors.redAccent),
+                    style: TextStyle(
+                      color: _feedbackIsPositive
+                          ? Colors.greenAccent
+                          : Colors.redAccent,
+                    ),
                   ),
           ),
           Expanded(
