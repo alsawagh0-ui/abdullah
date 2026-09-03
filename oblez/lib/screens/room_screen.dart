@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../data/comedy_lines.dart';
 import '../logic/manager_call_scheduler.dart';
+import '../logic/progression_logic.dart';
 import '../models/player_state.dart';
 import '../widgets/daily_choice_dialog.dart';
 import '../widgets/energy_bar.dart';
@@ -129,6 +130,10 @@ class _RoomScreenState extends State<RoomScreen> {
                 StatChip(
                   icon: Icons.military_tech,
                   value: '${player.rankPoints}',
+                ),
+                StatChip(
+                  icon: Icons.trending_up,
+                  value: ProgressionLogic.labelFor(player.tier),
                 ),
               ],
             ),

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../data/shop_catalog.dart';
+import '../logic/progression_logic.dart';
 import '../models/player_state.dart';
 import '../models/shop_item.dart';
+import 'ending_screen.dart';
 
 /// متجر التطوير: عتاد وشبكة (مسارات مستويات) + فلكس (عناصر تجميلية مستقلة).
 class ShopScreen extends StatefulWidget {
@@ -20,7 +22,7 @@ class _ShopScreenState extends State<ShopScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -33,6 +35,21 @@ class _ShopScreenState extends State<ShopScreen>
     final message =
         success ? 'تم الشراء! 🎉' : 'ما تكفي فلوسك، أو لازم تكمل الترقية اللي قبلها أول.';
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _handlePropertyPurchase(PlayerState player) {
+    if (!player.buyProperty()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لازم توصل لمرحلة "المحترف" وتوفر السعر كامل.'),
+        ),
+      );
+      return;
+    }
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const EndingScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -48,6 +65,7 @@ class _ShopScreenState extends State<ShopScreen>
             Tab(text: 'عتاد'),
             Tab(text: 'شبكة'),
             Tab(text: 'فلكس'),
+            Tab(text: 'الهدف النهائي'),
           ],
         ),
       ),
@@ -68,6 +86,10 @@ class _ShopScreenState extends State<ShopScreen>
             items: ShopCatalog.cosmetics,
             ownedIds: player.ownedCosmetics,
             onBuy: (item) => _handlePurchase(player.buyCosmetic(item)),
+          ),
+          _PropertyTab(
+            player: player,
+            onBuy: () => _handlePropertyPurchase(player),
           ),
         ],
       ),
@@ -156,6 +178,52 @@ class _CosmeticCategoryList extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// تبويب الهدف النهائي: شراء عقار = شاشة الفوز، يتطلب الوصول لمرحلة "المحترف".
+class _PropertyTab extends StatelessWidget {
+  final PlayerState player;
+  final VoidCallback onBuy;
+
+  const _PropertyTab({required this.player, required this.onBuy});
+
+  @override
+  Widget build(BuildContext context) {
+    final eligible = player.canBuyProperty;
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                '🏠 عقار في مدينة عربية كبرى',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'الهدف النهائي: بنق مستقر 0ms واستقرار تام. '
+                'يتطلب الوصول لمرحلة "المحترف" (ترقية عتاد وشبكة عاليتين + نقاط رانك كافية).',
+              ),
+              const SizedBox(height: 12),
+              Text('مرحلتك الحالية: ${ProgressionLogic.labelFor(player.tier)}'),
+              Text('السعر: \$${PlayerState.propertyPrice}'),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: eligible ? onBuy : null,
+                child: Text(
+                  eligible ? 'اشترِ العقار 🏆' : 'لسا ما توصلت لمرحلة المحترف',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../logic/progression_logic.dart';
 import 'game_day.dart';
 import 'shop_item.dart';
 
@@ -56,7 +57,24 @@ class PlayerState extends ChangeNotifier {
     Set<String>? ownedCosmetics,
   }) : ownedCosmetics = ownedCosmetics ?? {};
 
+  /// سعر الهدف النهائي (عقار = بنق مستقر 0ms، شاشة الفوز).
+  static const int propertyPrice = 5000;
+
   bool get isFired => missedManagerCalls >= 3;
+
+  bool get canBuyProperty =>
+      tier == ProgressionTier.pro && money >= propertyPrice;
+
+  /// يعيد حساب مرحلة التقدم من الإحصائيات الحالية، بدون المساس بمرحلة
+  /// النهاية بعد ما تتحقق (تُفعّل فقط عبر [buyProperty]).
+  void _refreshTier() {
+    if (tier == ProgressionTier.ending) return;
+    tier = ProgressionLogic.computeTier(
+      gearLevel: gearLevel,
+      networkLevel: networkLevel,
+      rankPoints: rankPoints,
+    );
+  }
 
   void changeEnergy(int amount) {
     energy = (energy + amount).clamp(0, 100).toInt();
@@ -70,6 +88,7 @@ class PlayerState extends ChangeNotifier {
 
   void addRankPoints(int amount) {
     rankPoints += amount;
+    _refreshTier();
     notifyListeners();
   }
 
@@ -100,6 +119,7 @@ class PlayerState extends ChangeNotifier {
     if (item.tier != gearLevel + 1 || money < item.price) return false;
     money -= item.price;
     gearLevel = item.tier;
+    _refreshTier();
     notifyListeners();
     return true;
   }
@@ -109,6 +129,16 @@ class PlayerState extends ChangeNotifier {
     if (item.tier != networkLevel + 1 || money < item.price) return false;
     money -= item.price;
     networkLevel = item.tier;
+    _refreshTier();
+    notifyListeners();
+    return true;
+  }
+
+  /// شراء الهدف النهائي: عقار = بنق مستقر 0ms. يتطلب مرحلة "المحترف".
+  bool buyProperty() {
+    if (!canBuyProperty) return false;
+    money -= propertyPrice;
+    tier = ProgressionTier.ending;
     notifyListeners();
     return true;
   }
