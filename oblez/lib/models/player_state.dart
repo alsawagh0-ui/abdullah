@@ -208,4 +208,21 @@ class PlayerState extends ChangeNotifier {
     }
     sleep();
   }
+
+  /// يرجّع كل الإحصائيات لبداية جديدة — يُستخدم بزر "من جديد" بشاشة الفشل.
+  void resetGame() {
+    energy = 100;
+    hour = 9;
+    day = 1;
+    money = 0;
+    missedManagerCalls = 0;
+    networkLevel = 0;
+    gearLevel = 0;
+    tier = ProgressionTier.beginner;
+    isEmployed = true;
+    rankPoints = 0;
+    consecutiveRankLosses = 0;
+    ownedCosmetics.clear();
+    notifyListeners();
+  }
 }

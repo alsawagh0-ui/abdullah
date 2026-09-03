@@ -83,7 +83,12 @@ class _RoomScreenState extends State<RoomScreen> {
         final reason = ComedyLines
             .firedReasons[_random.nextInt(ComedyLines.firedReasons.length)];
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => GameOverScreen(reason: reason)),
+          MaterialPageRoute(
+            builder: (_) => GameOverScreen(
+              reason: reason,
+              kind: GameOverKind.fired,
+            ),
+          ),
         );
         return;
       }

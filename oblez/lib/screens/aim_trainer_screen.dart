@@ -147,7 +147,12 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
     if (result.kicked) {
       final reason = _randomLine(ComedyLines.kickedReasons);
       Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => GameOverScreen(reason: reason)),
+        MaterialPageRoute(
+          builder: (_) => GameOverScreen(
+            reason: reason,
+            kind: GameOverKind.kickedFromTeam,
+          ),
+        ),
         (route) => false,
       );
       return;
