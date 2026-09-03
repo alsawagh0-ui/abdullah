@@ -1,5 +1,7 @@
 # 11 — MVP vs Phase 2 Feature Separation
 
+> Implementation status: every MVP row below is implemented in `app/` against `backend/schema/001_initial.sql`; see `app/README.md` for the items that need external accounts (push delivery, Apple sign-in, SMS).
+
 The build order follows brief §23 exactly. "Schema-ready" means the tables/columns exist in
 `001_initial.sql` so Phase 2 needs no migration of existing data.
 

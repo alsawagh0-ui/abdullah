@@ -59,11 +59,23 @@ Arabic terminology verbatim wherever it appears in the UI.
 almunjez/
 ├── README.md                     ← this index
 ├── docs/                         ← the 14 architecture documents
-└── backend/
-    ├── README.md                 ← how to run the schema tests / apply to Supabase
-    ├── schema/001_initial.sql    ← Postgres DDL: enums, tables, RLS, RPCs, atomic claim, activity log
-    └── tests/                    ← smoke.sql (rule assertions) + claim_concurrency.sh (race) + run.sh
+├── backend/
+│   ├── README.md                 ← how to run the schema tests / apply to Supabase
+│   ├── schema/001_initial.sql    ← Postgres DDL: enums, tables, RLS, RPCs, atomic claim, activity log
+│   └── tests/                    ← smoke.sql (rule assertions) + claim_concurrency.sh (race) + run.sh
+└── app/                          ← the Flutter iPhone app (24 MVP screens, two backends, 20 tests)
+    └── README.md                 ← how to run it locally or against Supabase
 ```
+
+## Status
+
+| Layer | State |
+|---|---|
+| Architecture (14 docs) | complete |
+| Database schema, RLS, RPCs | complete, tested on Postgres 16 (`backend/tests/run.sh`) |
+| iPhone app | MVP screens complete; runs on the on-device engine now, on Supabase with two `--dart-define`s |
+| Push delivery, Sign in with Apple, SMS OTP | code in place; need Apple/Firebase/Supabase accounts to switch on |
+| Signed iOS build | `ios/` project generated; needs a Mac with Xcode |
 
 The schema is not a sketch: `backend/tests/run.sh` applies it to a real Postgres 16, runs 20
 groups of assertions against the rules in these documents, and races 40 concurrent claimers on one

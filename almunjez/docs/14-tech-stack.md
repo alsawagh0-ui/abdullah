@@ -5,9 +5,9 @@
 | Layer | Choice | Alternative considered | Why this one |
 |---|---|---|---|
 | iPhone app | **Flutter 3.x (stable)**, Dart 3 | SwiftUI | see §2 |
-| State | Riverpod 2 (code-gen) | Bloc | less ceremony for a screen-per-feature app; easy optimistic updates |
+| State | Riverpod 2 (no code-gen; plain providers in `core/providers.dart`) | Bloc | less ceremony for a screen-per-feature app; every provider refreshes from the API change stream |
 | Navigation | go_router | Navigator 2 by hand | deep links and push routes declaratively |
-| Local cache | drift (SQLite) for tasks/groups/notifications | Hive / Isar | typed SQL, migrations, good for offline read cache and later write queue |
+| Local cache | MVP: the on-device rules engine persists JSON via `shared_preferences` (local mode); Phase 2: drift (SQLite) read cache + write queue for Supabase mode | Hive / Isar | typed SQL, migrations, good for offline read cache and later write queue |
 | Backend platform | **Supabase** (Postgres 15+, Auth, PostgREST, Realtime, Storage, Edge Functions, pg_cron) | Firebase; custom NestJS + Postgres | see §3 |
 | Push | APNs via **Firebase Cloud Messaging** (`firebase_messaging`) with the APNs key uploaded to FCM | direct APNs from the Edge Function | FCM handles token lifecycle, works unchanged if Android is added; the outbox design does not care which sender is used |
 | Background jobs | pg_cron + Edge Functions (Deno/TypeScript) | separate worker service | zero extra infra in MVP |
