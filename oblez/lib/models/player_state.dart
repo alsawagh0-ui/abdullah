@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
 
+import 'game_day.dart';
+import 'shop_item.dart';
+
 /// مراحل التقدم بالقصة (تُستخدم لاحقاً لفتح محتوى/شاشات جديدة).
 enum ProgressionTier { beginner, skilled, pro, ending }
 
@@ -36,6 +39,9 @@ class PlayerState extends ChangeNotifier {
   /// نقاط الرانك المتراكمة من الـ Aim Trainer (تُستخدم للتأهل للبطولات لاحقاً).
   int rankPoints;
 
+  /// معرّفات عناصر الفلكس (التجميلية) المملوكة — بلا تأثير وظيفي.
+  final Set<String> ownedCosmetics;
+
   PlayerState({
     this.energy = 100,
     this.hour = 9,
@@ -47,7 +53,8 @@ class PlayerState extends ChangeNotifier {
     this.tier = ProgressionTier.beginner,
     this.isEmployed = true,
     this.rankPoints = 0,
-  });
+    Set<String>? ownedCosmetics,
+  }) : ownedCosmetics = ownedCosmetics ?? {};
 
   bool get isFired => missedManagerCalls >= 3;
 
@@ -86,5 +93,50 @@ class PlayerState extends ChangeNotifier {
     hour = 9;
     day += 1;
     notifyListeners();
+  }
+
+  /// شراء ترقية عتاد: لازم تكون العنصر أول مستوى فوق الحالي وتوفر السعر.
+  bool buyGearUpgrade(ShopItem item) {
+    if (item.tier != gearLevel + 1 || money < item.price) return false;
+    money -= item.price;
+    gearLevel = item.tier;
+    notifyListeners();
+    return true;
+  }
+
+  /// شراء ترقية شبكة: نفس منطق العتاد، بس على مستوى الشبكة.
+  bool buyNetworkUpgrade(ShopItem item) {
+    if (item.tier != networkLevel + 1 || money < item.price) return false;
+    money -= item.price;
+    networkLevel = item.tier;
+    notifyListeners();
+    return true;
+  }
+
+  /// شراء عنصر فلكس/تجميلي: عناصر مستقلة بلا مستويات، تُملك مرة وحدة.
+  bool buyCosmetic(ShopItem item) {
+    if (ownedCosmetics.contains(item.id) || money < item.price) return false;
+    money -= item.price;
+    ownedCosmetics.add(item.id);
+    notifyListeners();
+    return true;
+  }
+
+  /// يطبّق أثر القرار اليومي المختار، ثم ينام/يمرّر لليوم التالي.
+  void applyDailyChoice(DailyChoice choice) {
+    switch (choice) {
+      case DailyChoice.extraRank:
+        changeEnergy(-15);
+        addRankPoints(25);
+        break;
+      case DailyChoice.extraWork:
+        addMoney(80);
+        changeEnergy(-20);
+        break;
+      case DailyChoice.sleepEarly:
+        if (missedManagerCalls > 0) missedManagerCalls -= 1;
+        break;
+    }
+    sleep();
   }
 }

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../data/comedy_lines.dart';
 import '../logic/manager_call_scheduler.dart';
 import '../models/player_state.dart';
+import '../widgets/daily_choice_dialog.dart';
 import '../widgets/energy_bar.dart';
 import '../widgets/manager_call_dialog.dart';
 import '../widgets/stat_chip.dart';
@@ -85,6 +86,20 @@ class _RoomScreenState extends State<RoomScreen> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
 
+  void _endDay(BuildContext context) {
+    final player = context.read<PlayerState>();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => DailyChoiceDialog(
+        onChoice: (choice) {
+          Navigator.of(dialogContext).pop();
+          player.applyDailyChoice(choice);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final player = context.watch<PlayerState>();
@@ -135,9 +150,9 @@ class _RoomScreenState extends State<RoomScreen> {
                   label: const Text('المتجر'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: () => player.sleep(),
+                  onPressed: () => _endDay(context),
                   icon: const Icon(Icons.bedtime),
-                  label: const Text('نام بدري'),
+                  label: const Text('إنهاء اليوم'),
                 ),
               ],
             ),
