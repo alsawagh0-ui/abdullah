@@ -1,11 +1,13 @@
 {
-    "name": "almunjez",
-    "short_name": "almunjez",
+    "name": "المنجز — AlMunjez",
+    "lang": "ar",
+    "dir": "rtl",
+    "short_name": "المنجز",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1F5F8B",
+    "theme_color": "#1F5F8B",
+    "description": "كل مهمة لها صاحب — Every task has an owner",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

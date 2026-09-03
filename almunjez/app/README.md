@@ -69,3 +69,18 @@ lib/
 * **Proof photos/files.** Storage upload UI is Phase 2 (doc 11); proof-by-note works now.
 * **Signed iOS build.** Needs macOS/Xcode; the `ios/` project is generated with bundle id
   `kw.almunjez.almunjez`, Arabic display name, camera permission text, portrait only.
+
+## App icon and launch screen
+
+A brand mark (single checkmark on the accent gradient `#1F5F8B`, doc 14) replaces Flutter's
+default icon everywhere: iOS `AppIcon.appiconset` (all sizes, alpha stripped per App Store
+requirement), web favicon/PWA icons, and manifest name/description in Arabic. Source art is
+`assets/icon/` (generated once with Pillow — see `flutter_launcher_icons.yaml`). The iOS launch
+screen background was changed from Flutter's default white to the app's own off-white
+(`#F7F7F5`) so there is no flash before the first frame. Regenerate after changing the source
+art with:
+
+```bash
+dart run flutter_launcher_icons
+```
+

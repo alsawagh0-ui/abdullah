@@ -1,0 +1,12 @@
+# Regenerate with: dart run flutter_launcher_icons
+# Source art: assets/icon/ (generated once with Pillow; see almunjez/app/README.md)
+flutter_launcher_icons:
+  image_path: "assets/icon/icon_ios.png"
+  ios: true
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/icon/icon_adaptive.png"
+    background_color: "#1F5F8B"
+    theme_color: "#1F5F8B"
+  android: false
