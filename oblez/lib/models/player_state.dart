@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../logic/energy_logic.dart';
 import '../logic/progression_logic.dart';
 import 'game_day.dart';
 import 'shop_item.dart';
@@ -43,6 +44,9 @@ class PlayerState extends ChangeNotifier {
   /// معرّفات عناصر الفلكس (التجميلية) المملوكة — بلا تأثير وظيفي.
   final Set<String> ownedCosmetics;
 
+  /// عدد جولات الرانك المتتالية اللي خسرها اللاعب (تحت حد النجاح).
+  int consecutiveRankLosses;
+
   PlayerState({
     this.energy = 100,
     this.hour = 9,
@@ -54,13 +58,23 @@ class PlayerState extends ChangeNotifier {
     this.tier = ProgressionTier.beginner,
     this.isEmployed = true,
     this.rankPoints = 0,
+    this.consecutiveRankLosses = 0,
     Set<String>? ownedCosmetics,
   }) : ownedCosmetics = ownedCosmetics ?? {};
 
   /// سعر الهدف النهائي (عقار = بنق مستقر 0ms، شاشة الفوز).
   static const int propertyPrice = 5000;
 
+  /// أي جولة Aim Trainer بنقاط أقل من هالحد تُحسب "خسارة رانك".
+  static const int rankLossScoreThreshold = 50;
+
+  /// عدد الخسائر المتتالية اللي تؤدي للطرد من الفريق.
+  static const int maxConsecutiveRankLosses = 3;
+
   bool get isFired => missedManagerCalls >= 3;
+
+  bool get isKickedFromTeam =>
+      consecutiveRankLosses >= maxConsecutiveRankLosses;
 
   bool get canBuyProperty =>
       tier == ProgressionTier.pro && money >= propertyPrice;
@@ -105,6 +119,31 @@ class PlayerState extends ChangeNotifier {
   void advanceHour([int hours = 1]) {
     hour = (hour + hours) % 24;
     notifyListeners();
+  }
+
+  /// تقدّم فعلي بالوقت أثناء اللعب: كل نبضة تمثّل ساعة، وتستنزف طاقة
+  /// حسب مستوى العتاد (كرسي أفضل = استنزاف أقل).
+  void tickHour() {
+    hour = (hour + 1) % 24;
+    energy = (energy - EnergyLogic.hourlyDrain(gearLevel)).clamp(0, 100).toInt();
+    notifyListeners();
+  }
+
+  /// نتيجة جولة Aim Trainer: يحدّث الفلوس ونقاط الرانك، ويتابع سلسلة
+  /// خسائر الرانك — 3 خسائر متتالية تطرد اللاعب من الفريق (Game Over).
+  ({bool kicked, int reward}) recordAimTrainerResult(int score) {
+    final reward = (score / 5).round();
+    addMoney(reward);
+    addRankPoints(score);
+
+    if (score < rankLossScoreThreshold) {
+      consecutiveRankLosses += 1;
+    } else {
+      consecutiveRankLosses = 0;
+    }
+    notifyListeners();
+
+    return (kicked: isKickedFromTeam, reward: reward);
   }
 
   void sleep() {

@@ -8,6 +8,7 @@ import '../logic/energy_logic.dart';
 import '../logic/ping_logic.dart';
 import '../models/aim_target.dart';
 import '../models/player_state.dart';
+import 'game_over_screen.dart';
 
 /// اللعبة المصغرة: أهداف عشوائية تظهر وتختفي، النقر السريع يسجل نقاط
 /// وكومبو. بنق عالي (شبكة ضعيفة) يلغي بعض النقرات، وطاقة واطية تهز الهدف.
@@ -125,9 +126,19 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
     _jitterTimer?.cancel();
     setState(() => _current = null);
 
-    final reward = (_score / 5).round();
-    _player.addMoney(reward);
-    _player.addRankPoints(_score);
+    final result = _player.recordAimTrainerResult(_score);
+
+    if (result.kicked) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const GameOverScreen(
+            reason: 'خسرت 3 جولات رانك على التوالي... انطردت من الفريق! 😢',
+          ),
+        ),
+        (route) => false,
+      );
+      return;
+    }
 
     showDialog(
       context: context,
@@ -135,7 +146,7 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
       builder: (_) => AlertDialog(
         title: const Text('انتهت الجولة! ⏱'),
         content: Text(
-          'نقاطك: $_score\nمكافأة: $reward\$\nنقاط رانك: +$_score',
+          'نقاطك: $_score\nمكافأة: ${result.reward}\$\nنقاط رانك: +$_score',
         ),
         actions: [
           FilledButton(

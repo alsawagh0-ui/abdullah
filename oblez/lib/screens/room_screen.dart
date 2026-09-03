@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -25,19 +26,28 @@ class RoomScreen extends StatefulWidget {
 }
 
 class _RoomScreenState extends State<RoomScreen> {
+  /// كل نبضة زمنية بالواقع = ساعة وحدة داخل اللعبة.
+  static const _hourTickInterval = Duration(seconds: 12);
+
   final _scheduler = ManagerCallScheduler();
   final _random = Random();
   bool _callActive = false;
+  Timer? _hourTimer;
 
   @override
   void initState() {
     super.initState();
     _scheduler.scheduleNext(_triggerIncomingCall);
+    _hourTimer = Timer.periodic(_hourTickInterval, (_) {
+      if (!mounted) return;
+      context.read<PlayerState>().tickHour();
+    });
   }
 
   @override
   void dispose() {
     _scheduler.cancel();
+    _hourTimer?.cancel();
     super.dispose();
   }
 
