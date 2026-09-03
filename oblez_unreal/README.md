@@ -23,6 +23,13 @@ Unreal Engine (المحرر + أدوات البناء) **مو مثبت بالب�
 
 ## الخطوات عندك (بجهازك)
 
+دليل تفصيلي خطوة-بخطوة لبناء أول مستوى (الغرفة الرئيسية) موجود بـ
+[`docs/RoomLevel_BuildGuide.md`](docs/RoomLevel_BuildGuide.md) —
+يغطي المستوى، الـ Widget Blueprint، مؤقت الساعة، نظام اتصالات المدير،
+وحوار القرار اليومي، بالضبط بالمقابل مع `RoomScreen` بنسخة Flutter.
+
+ملخص سريع:
+
 1. افتح `Oblez.uproject` بـ Unreal Editor (يسألك يبني الكود — وافق).
 2. أنشئ مستوى `Content/Maps/RoomLevel` وحطه Default Map (`Config/DefaultEngine.ini`
    يشير له مسبقاً).

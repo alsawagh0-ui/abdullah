@@ -5,7 +5,7 @@
 #include "Oblez/Data/OblezTypes.h"
 #include "OblezPlayerProgress.generated.h"
 
-DECLARE_MULTICAST_DELEGATE(FOblezPlayerProgressChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOblezPlayerProgressChanged);
 
 /**
  * حالة اللاعب المركزية — GameInstanceSubsystem يعيش طول جلسة اللعب بلا
@@ -16,9 +16,10 @@ DECLARE_MULTICAST_DELEGATE(FOblezPlayerProgressChanged);
  * (خاص بالشبكي/الـ replication) — الاسم مأخوذ من دلالة "حالة اللاعب"
  * بتصميم اللعبة نفسه، مو من نظام Unreal.
  *
- * الربط بالواجهة: نادِ OnChanged.Broadcast() (يصير تلقائياً بكل Setter هنا)
- * وسجّل عليه من الـ UI (C++ أو Blueprint عبر حدث مخصص) لتحديث العرض —
- * هذا يقابل استخدام Provider/notifyListeners() بنسخة Flutter.
+ * الربط بالواجهة: OnChanged دايناميكي (BlueprintAssignable) — من أي Widget
+ * Blueprint اعمل "Bind Event to OnChanged" واربطه بدالة تحدّث كل عناصر
+ * العرض. يصير Broadcast تلقائياً بكل Setter هنا، تماماً يقابل استخدام
+ * Provider/notifyListeners() بنسخة Flutter.
  */
 UCLASS(BlueprintType)
 class OBLEZ_API UOblezPlayerProgress : public UGameInstanceSubsystem
@@ -26,7 +27,8 @@ class OBLEZ_API UOblezPlayerProgress : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
-	/// يُطلق بعد أي تعديل على الحالة.
+	/// يُطلق بعد أي تعديل على الحالة — اربط عليه من الـ Widget Blueprint.
+	UPROPERTY(BlueprintAssignable, Category = "Oblez|Player")
 	FOblezPlayerProgressChanged OnChanged;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Oblez|Player")
