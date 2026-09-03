@@ -36,16 +36,24 @@ jobs:
       - run: flutter pub get
         working-directory: app
 
-      - name: Build Flutter web app
+      - name: Build Flutter web app (Wajb)
         working-directory: app
         run: flutter build web --release --base-href /${{ github.event.repository.name }}/app/
 
-      - name: Assemble Pages site (marketing site + web app under /app)
+      - name: Build Flutter web app (AlMunjez)
+        working-directory: almunjez/app
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /${{ github.event.repository.name }}/almunjez/
+
+      - name: Assemble Pages site (marketing site + both web apps)
         run: |
           mkdir -p _site
           cp -r website/. _site/
           mkdir -p _site/app
           cp -r app/build/web/. _site/app/
+          mkdir -p _site/almunjez
+          cp -r almunjez/app/build/web/. _site/almunjez/
 
       - uses: actions/upload-pages-artifact@v3
         with:
