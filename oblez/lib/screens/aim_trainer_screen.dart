@@ -23,7 +23,18 @@ class AimTrainerScreen extends StatefulWidget {
 
 class _AimTrainerScreenState extends State<AimTrainerScreen> {
   static const _sessionSeconds = 30;
-  static const _targetSize = 56.0;
+
+  /// نسبة حجم الهدف من أصغر بُعد بمنطقة اللعب، بحدود دنيا/عليا — على
+  /// موبايل ضيق يقرب من الحد الأدنى، وعلى نافذة ديسكتوب واسعة يكبر
+  /// بدل ما يضل بحجم إصبع ثابت بمنتصف شاشة كبيرة.
+  static const _targetSizeRatio = 0.09;
+  static const _minTargetSize = 44.0;
+  static const _maxTargetSize = 110.0;
+
+  double _targetSizeFor(double width, double height) {
+    final base = min(width, height) * _targetSizeRatio;
+    return base.clamp(_minTargetSize, _maxTargetSize).toDouble();
+  }
 
   final _logic = AimTrainerLogic();
   final _pingLogic = PingLogic();
@@ -216,14 +227,15 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
 
                 final w = constraints.maxWidth;
                 final h = constraints.maxHeight;
+                final targetSize = _targetSizeFor(w, h);
 
                 final dx = _lowEnergy ? _jitter.dx * w : 0.0;
                 final dy = _lowEnergy ? _jitter.dy * h : 0.0;
 
-                final left =
-                    (target.x * w - _targetSize / 2 + dx).clamp(0, w - _targetSize);
-                final top =
-                    (target.y * h - _targetSize / 2 + dy).clamp(0, h - _targetSize);
+                final left = (target.x * w - targetSize / 2 + dx)
+                    .clamp(0, w - targetSize);
+                final top = (target.y * h - targetSize / 2 + dy)
+                    .clamp(0, h - targetSize);
 
                 return Stack(
                   children: [
@@ -233,8 +245,8 @@ class _AimTrainerScreenState extends State<AimTrainerScreen> {
                       child: GestureDetector(
                         onTap: _onTargetTapped,
                         child: Container(
-                          width: _targetSize,
-                          height: _targetSize,
+                          width: targetSize,
+                          height: targetSize,
                           decoration: const BoxDecoration(
                             color: Colors.redAccent,
                             shape: BoxShape.circle,
