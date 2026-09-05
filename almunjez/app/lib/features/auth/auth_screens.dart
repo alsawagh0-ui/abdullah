@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
 import '../../core/api/local/local_api.dart';
+import '../../core/api/almunjez_api.dart';
 import '../../core/notif_prompt.dart';
 import '../../core/providers.dart';
 import '../../core/push.dart';
@@ -89,8 +90,34 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   bool _phoneCodeSent = false;
 
   final _email = TextEditingController();
+  final _password = TextEditingController();
   final _emailCode = TextEditingController();
   bool _emailCodeSent = false;
+  bool _useEmailCode = false; // magic-link/OTP path needs dashboard setup; off by default
+  bool _creatingAccount = false;
+  bool _showPassword = false;
+  bool _confirmEmailSent = false;
+
+  @override
+  void dispose() {
+    for (final c in [_phone, _phoneCode, _email, _password, _emailCode]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  bool get _emailOk => _email.text.trim().contains('@');
+  bool get _passwordOk => _password.text.length >= 8;
+
+  Future<void> _submitPassword(AlMunjezApi api) => _run(() async {
+        final email = _email.text.trim();
+        if (_creatingAccount) {
+          final signedIn = await api.signUpWithPassword(email, _password.text);
+          if (!signedIn && mounted) setState(() => _confirmEmailSent = true);
+        } else {
+          await api.signInWithPassword(email, _password.text);
+        }
+      });
 
   bool _busy = false;
 
@@ -121,24 +148,66 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             const SizedBox(height: 16),
             Text(s.appName, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800, color: AppTheme.accent)),
             Text(s.tagline, style: const TextStyle(fontSize: 18, color: AppTheme.muted)),
-            const SizedBox(height: 40),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
-              onPressed: _busy ? null : () => _run(api.signInWithApple),
-              icon: const Icon(Icons.apple, size: 26),
-              label: Text(s.signInWithApple),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.black87, side: const BorderSide(color: Color(0xFFDADCE0))),
-              onPressed: _busy ? null : () => _run(api.signInWithGoogle),
-              icon: const _GoogleG(),
-              label: Text(s.signInWithGoogle),
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Text(s.signInWithEmail, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
-            if (!_emailCodeSent) ...[
+            if (_confirmEmailSent) ...[
+              _Note(icon: Icons.mark_email_read_outlined, text: '${s.codeSentTo} ${_email.text.trim()}\n${s.confirmEmailSent}'),
+              const SizedBox(height: 8),
+              FilledButton(
+                key: const Key('signInAfterConfirm'),
+                onPressed: () => setState(() {
+                  _confirmEmailSent = false;
+                  _creatingAccount = false;
+                }),
+                child: Text(s.signIn),
+              ),
+            ] else if (!_useEmailCode) ...[
+              TextField(
+                key: const Key('emailField'),
+                controller: _email,
+                keyboardType: TextInputType.emailAddress,
+                textDirection: TextDirection.ltr,
+                autofillHints: const [AutofillHints.email],
+                decoration: InputDecoration(hintText: 'name@example.com', labelText: s.email),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const Key('passwordField'),
+                controller: _password,
+                obscureText: !_showPassword,
+                textDirection: TextDirection.ltr,
+                autofillHints: [_creatingAccount ? AutofillHints.newPassword : AutofillHints.password],
+                decoration: InputDecoration(
+                  labelText: s.password,
+                  helperText: _creatingAccount ? s.passwordHint : null,
+                  suffixIcon: IconButton(
+                    icon: Icon(_showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                    onPressed: () => setState(() => _showPassword = !_showPassword),
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+                onSubmitted: (_) {
+                  if (_emailOk && _passwordOk && !_busy) _submitPassword(api);
+                },
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                key: const Key('passwordSubmit'),
+                onPressed: _busy || !_emailOk || !_passwordOk ? null : () => _submitPassword(api),
+                child: Text(_creatingAccount ? s.createAccount : s.signIn),
+              ),
+              TextButton(
+                key: const Key('togglePasswordMode'),
+                onPressed: _busy ? null : () => setState(() => _creatingAccount = !_creatingAccount),
+                child: Text(_creatingAccount ? s.haveAccount : s.noAccount),
+              ),
+              TextButton(
+                onPressed: _busy ? null : () => setState(() => _useEmailCode = true),
+                child: Text(s.useEmailCode, style: const TextStyle(fontSize: 12, color: AppTheme.muted)),
+              ),
+            ] else if (!_emailCodeSent) ...[
               TextField(
                 controller: _email,
                 keyboardType: TextInputType.emailAddress,
@@ -148,13 +217,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               ),
               const SizedBox(height: 12),
               OutlinedButton(
-                onPressed: _busy || !_email.text.contains('@')
+                onPressed: _busy || !_emailOk
                     ? null
                     : () => _run(() async {
                           await api.sendEmailOtp(_email.text.trim());
                           setState(() => _emailCodeSent = true);
                         }),
                 child: Text(s.sendCode),
+              ),
+              TextButton(
+                onPressed: _busy ? null : () => setState(() => _useEmailCode = false),
+                child: Text(s.usePassword, style: const TextStyle(fontSize: 12, color: AppTheme.muted)),
               ),
             ] else ...[
               Text('${s.codeSentTo} ${_email.text.trim()}', style: const TextStyle(color: AppTheme.muted)),
@@ -174,6 +247,26 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               OutlinedButton(onPressed: _busy ? null : () => _run(() => api.verifyEmailOtp(_email.text.trim(), _emailCode.text.trim())), child: Text(s.verify)),
               TextButton(onPressed: () => setState(() => _emailCodeSent = false), child: Text(s.cancel)),
             ],
+            const SizedBox(height: 24),
+            Row(children: [
+              const Expanded(child: Divider()),
+              Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text(s.or, style: const TextStyle(color: AppTheme.muted))),
+              const Expanded(child: Divider()),
+            ]),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white),
+              onPressed: _busy ? null : () => _run(api.signInWithApple),
+              icon: const Icon(Icons.apple, size: 26),
+              label: Text(s.signInWithApple),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.black87, side: const BorderSide(color: Color(0xFFDADCE0))),
+              onPressed: _busy ? null : () => _run(api.signInWithGoogle),
+              icon: const _GoogleG(),
+              label: Text(s.signInWithGoogle),
+            ),
             const SizedBox(height: 24),
             Text(s.signInWithPhone, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
@@ -355,4 +448,20 @@ class _GoogleGPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _Note extends StatelessWidget {
+  const _Note({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: AppTheme.accent.withValues(alpha: .08), borderRadius: BorderRadius.circular(12)),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(icon, color: AppTheme.accent),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: const TextStyle(height: 1.5))),
+        ]),
+      );
 }

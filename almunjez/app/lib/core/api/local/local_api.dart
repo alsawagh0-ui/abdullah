@@ -288,6 +288,21 @@ class LocalApi implements AlMunjezApi {
   Future<void> sendEmailOtp(String email) async {}
 
   @override
+  Future<bool> signUpWithPassword(String email, String password) async {
+    if (password.length < 8) _fail('weak_password');
+    if (_users.values.any((u) => u.avatarPath == 'email:$email')) _fail('auth_422', {'message': 'User already registered'});
+    await _signInAs(AppUser(id: _id(), displayName: '', avatarPath: 'email:$email'));
+    return true;
+  }
+
+  @override
+  Future<void> signInWithPassword(String email, String password) async {
+    final existing = _users.values.where((u) => u.avatarPath == 'email:$email').firstOrNull;
+    if (existing == null) _fail('auth_400', {'message': 'Invalid login credentials'});
+    await _signInAs(existing);
+  }
+
+  @override
   Future<void> verifyEmailOtp(String email, String code) async {
     if (code.length != 6) _fail('invalid_otp');
     final existing = _users.values.where((u) => u.avatarPath == 'email:$email').firstOrNull;

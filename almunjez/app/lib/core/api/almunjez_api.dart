@@ -22,6 +22,15 @@ abstract class AlMunjezApi {
   /// (unlike phone, which needs a paid SMS provider configured first).
   Future<void> sendEmailOtp(String email);
   Future<void> verifyEmailOtp(String email, String code);
+
+  /// Email + password. Needs nothing configured in the Supabase dashboard,
+  /// which is why it is the primary method: the magic link needs Site URL /
+  /// Redirect URLs set, the OTP code needs the email template edited, phone
+  /// needs an SMS provider, Apple/Google need OAuth clients.
+  /// Returns true when a session exists immediately; false when Supabase
+  /// sent a confirmation email first (its default for new projects).
+  Future<bool> signUpWithPassword(String email, String password);
+  Future<void> signInWithPassword(String email, String password);
   Future<void> signInDemo();
   Future<void> signOut();
   Future<AppUser> completeProfile({required String displayName, String? locale});

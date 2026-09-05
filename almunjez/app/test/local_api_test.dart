@@ -304,4 +304,18 @@ void main() {
       expect(await a.notificationPreferences(), isEmpty);
     });
   });
+
+  group('email + password (LocalApi stand-in)', () {
+    test('sign-up creates a session; duplicate sign-up and unknown sign-in map to auth_ codes', () async {
+      final a = LocalApi(MemoryStore());
+      expect(await a.signUpWithPassword('x@y.com', 'longenough'), isTrue);
+      expect(a.currentUser, isNotNull);
+      await a.signOut();
+      await expectLater(a.signUpWithPassword('x@y.com', 'longenough'), throwsA(isA<ApiException>().having((e) => e.code, 'code', 'auth_422')));
+      await expectLater(a.signInWithPassword('nobody@y.com', 'longenough'), throwsA(isA<ApiException>().having((e) => e.code, 'code', 'auth_400')));
+      await expectLater(a.signUpWithPassword('z@y.com', 'short'), throwsA(isA<ApiException>().having((e) => e.code, 'code', 'weak_password')));
+      await a.signInWithPassword('x@y.com', 'longenough');
+      expect(a.currentUser!.avatarPath, 'email:x@y.com');
+    });
+  });
 }

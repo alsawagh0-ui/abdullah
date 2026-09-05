@@ -144,6 +144,26 @@ class SupabaseApi implements AlMunjezApi {
   Future<void> verifyEmailOtp(String email, String code) => _call(() => _client.auth.verifyOTP(type: sb.OtpType.email, email: email, token: code));
 
   @override
+  Future<bool> signUpWithPassword(String email, String password) => _call(() async {
+        final res = await _client.auth.signUp(
+          email: email,
+          password: password,
+          emailRedirectTo: kIsWeb ? AppConfig.webAppUrl : 'almunjez://login-callback/',
+        );
+        if (res.session == null) return false; // confirmation email sent (Supabase default)
+        await _loadProfile();
+        _auth.add(_profile);
+        return true;
+      });
+
+  @override
+  Future<void> signInWithPassword(String email, String password) => _call(() async {
+        await _client.auth.signInWithPassword(email: email, password: password);
+        await _loadProfile();
+        _auth.add(_profile);
+      });
+
+  @override
   Future<void> signInDemo() async => throw ApiException('demo_unavailable');
 
   @override

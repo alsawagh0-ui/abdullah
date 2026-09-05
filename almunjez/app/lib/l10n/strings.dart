@@ -42,7 +42,16 @@ class S {
   String get codeSentTo => t('أرسلنا رمزاً إلى', 'We sent a code to');
   String get signInWithEmail => t('المتابعة بالبريد الإلكتروني', 'Continue with email');
   String get email => t('البريد الإلكتروني', 'Email');
+  String get password => t('كلمة المرور', 'Password');
+  String get passwordHint => t('٨ أحرف على الأقل', 'At least 8 characters');
+  String get createAccount => t('إنشاء حساب', 'Create account');
+  String get haveAccount => t('لديك حساب؟ تسجيل الدخول', 'Have an account? Sign in');
+  String get noAccount => t('ليس لديك حساب؟ أنشئ واحداً', 'No account? Create one');
+  String get useEmailCode => t('الدخول برمز يُرسل إلى البريد بدل كلمة المرور', 'Use an emailed code instead of a password');
+  String get usePassword => t('الدخول بكلمة المرور', 'Use a password instead');
+  String get confirmEmailSent => t('أرسلنا رابط تأكيد إلى بريدك. اضغطه، ثم عد هنا وسجّل الدخول بكلمة المرور. (إن ظهرت صفحة فارغة بعد الضغط فهذا طبيعي — التأكيد تم.)', 'We sent a confirmation link to your email. Open it, then come back and sign in with your password. (A blank page after clicking is normal — the confirmation went through.)');
   String get verify => t('تحقق', 'Verify');
+  String get or => t('أو', 'or');
   String get completeProfile => t('إكمال الملف', 'Complete your profile');
   String get yourName => t('اسمك كما يراه الأعضاء', 'Your name as members see it');
   String get continueLabel => t('متابعة', 'Continue');
@@ -281,9 +290,22 @@ class S {
         'network' => t('تعذّر الاتصال بالخادم', 'Could not reach the server'),
         // Auth backend errors vary by provider/config (e.g. no SMS provider set up
         // yet) — show Supabase's own message rather than a generic fallback.
-        String c when c.startsWith('auth_') => (detail['message'] as String?) ?? t('خطأ في تسجيل الدخول', 'Sign-in error'),
+        'weak_password' => passwordHint,
+        String c when c.startsWith('auth_') => _authMessage(detail['message'] as String?),
         _ => t('حدث خطأ غير متوقع', 'Something went wrong'),
       };
+
+  /// Supabase Auth returns English messages; translate the common ones.
+  String _authMessage(String? m) {
+    final x = (m ?? '').toLowerCase();
+    if (x.contains('invalid login credentials')) return t('البريد أو كلمة المرور غير صحيحة', 'Wrong email or password');
+    if (x.contains('email not confirmed')) return t('أكّد بريدك أولاً من رابط التأكيد الذي أرسلناه، ثم سجّل الدخول', 'Confirm your email from the link we sent, then sign in');
+    if (x.contains('already registered')) return t('هذا البريد مسجّل بالفعل — سجّل الدخول', 'This email is already registered — sign in');
+    if (x.contains('password should be')) return passwordHint;
+    if (x.contains('rate limit') || x.contains('too many')) return t('حاول بعد قليل', 'Try again shortly');
+    if (x.contains('unsupported phone provider') || x.contains('sms')) return t('الدخول بالجوال غير مفعّل بعد — استخدم البريد', 'Phone sign-in is not enabled yet — use email');
+    return m == null || m.isEmpty ? t('خطأ في تسجيل الدخول', 'Sign-in error') : m;
+  }
 
   /// Notification titles rendered on the client from type + data (doc 08 §2).
   String notificationTitle(String type, Map<String, dynamic> d, {String? actor, String? group}) {

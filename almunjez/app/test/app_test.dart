@@ -24,12 +24,20 @@ void main() {
     return api;
   }
 
+  /// The demo button sits below the email/password + Apple/Google + phone
+  /// sections, off-screen on a phone-sized viewport.
+  Future<void> tapDemo(WidgetTester tester) async {
+    final btn = find.text('تجربة سريعة بحساب تجريبي');
+    await tester.scrollUntilVisible(btn, 300, scrollable: find.byType(Scrollable).first);
+    await tester.tap(btn);
+  }
+
   testWidgets('welcome → demo sign-in → home shows greeting and groups', (tester) async {
     await pumpApp(tester);
     expect(find.text('تسجيل الدخول'), findsWidgets);
     await tester.tap(find.text('تخطٍّ'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('تجربة سريعة بحساب تجريبي'));
+    await tapDemo(tester);
     await tester.pumpAndSettle();
     expect(find.textContaining('عبدالله'), findsWidgets);
     expect(find.text('البيت'), findsWidgets);
@@ -43,7 +51,7 @@ void main() {
     final api = await pumpApp(tester);
     await tester.tap(find.text('تخطٍّ'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('تجربة سريعة بحساب تجريبي'));
+    await tapDemo(tester);
     await tester.pumpAndSettle();
 
     // open the family group from the groups tab
@@ -75,7 +83,7 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.text('تخطٍّ'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('تجربة سريعة بحساب تجريبي'));
+    await tapDemo(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.text('المجموعات'));
     await tester.pumpAndSettle();
@@ -94,7 +102,7 @@ void main() {
     final api = await pumpApp(tester);
     await tester.tap(find.text('تخطٍّ'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('تجربة سريعة بحساب تجريبي'));
+    await tapDemo(tester);
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('نورة').first);
     await tester.pumpAndSettle();
@@ -109,7 +117,7 @@ void main() {
     final api = await pumpApp(tester);
     await tester.tap(find.text('تخطٍّ'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('تجربة سريعة بحساب تجريبي'));
+    await tapDemo(tester);
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('homeProfileAvatar'))); // home → profile
@@ -128,5 +136,44 @@ void main() {
     expect((await api.notificationPreferences())['task.comment']!.push, isFalse);
     final sw = tester.widget<SwitchListTile>(find.widgetWithText(SwitchListTile, 'التعليقات'));
     expect(sw.value, isFalse);
+  });
+
+  testWidgets('email + password: create account → complete profile; wrong password is rejected in Arabic', (tester) async {
+    final api = await pumpApp(tester);
+    await tester.tap(find.text('تخطٍّ'));
+    await tester.pumpAndSettle();
+
+    // password is the first option on the screen, no code-sending required
+    expect(find.byKey(const Key('passwordField')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('togglePasswordMode'))); // → create account
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(FilledButton, 'إنشاء حساب'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('emailField')), 'sara@example.com');
+    await tester.enterText(find.byKey(const Key('passwordField')), 'short');
+    await tester.pumpAndSettle();
+    final disabled = tester.widget<FilledButton>(find.byKey(const Key('passwordSubmit')));
+    expect(disabled.onPressed, isNull, reason: 'button stays disabled until 8 characters');
+
+    await tester.enterText(find.byKey(const Key('passwordField')), 'correct-horse');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('passwordSubmit')));
+    await tester.pumpAndSettle();
+    expect(find.text('إكمال الملف'), findsOneWidget, reason: 'new users land on complete-profile');
+    expect(api.currentUser, isNotNull);
+
+    // sign out and try a wrong email → Arabic message, not an English Supabase string
+    await api.signOut();
+    await tester.pumpAndSettle();
+    if (find.text('تخطٍّ').evaluate().isNotEmpty) {
+      await tester.tap(find.text('تخطٍّ'));
+      await tester.pumpAndSettle();
+    }
+    await tester.enterText(find.byKey(const Key('emailField')), 'nobody@example.com');
+    await tester.enterText(find.byKey(const Key('passwordField')), 'correct-horse');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('passwordSubmit')));
+    await tester.pumpAndSettle();
+    expect(find.text('البريد أو كلمة المرور غير صحيحة'), findsOneWidget);
   });
 }
