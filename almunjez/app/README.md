@@ -67,6 +67,16 @@ lib/
 `almunjez://join/{code}` (also the QR payload as `https://almunjez.app/join/{code}`),
 `almunjez://notifications`. Routes are declared in `lib/app/router.dart`.
 
+## Signing in on the live build
+
+Email + password is the only method that works on a fresh Supabase project
+with nothing configured; it is therefore the first option on the sign-in
+screen. Supabase's default "confirm email" setting sends a confirmation link
+whose redirect lands on a blank/localhost page until Site URL and Redirect
+URLs are set (doc 15 §0) — the confirmation itself still succeeds, so the
+user comes back and signs in with the password. The emailed-code, Google,
+Apple and phone paths stay in place behind their respective dashboard steps.
+
 ## Backend status
 
 `lib/app/config.dart` ships this project's real Supabase URL and anon key as the default —

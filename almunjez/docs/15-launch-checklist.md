@@ -4,6 +4,29 @@
 
 كل ما في الشيفرة جاهز. الخطوات التالية تحتاج **حسابك** لأنها تربط التطبيق بهويتك عند Apple وبمشروعك عند Supabase. رتّبتها بحيث تنسخ قيمة من مكان وتلصقها في مكان آخر فقط.
 
+## ٠. الحالة الآن — وما يعمل بلا أي إعداد
+
+التطبيق منشور على **https://alsawagh0-ui.github.io/abdullah/almunjez/** ومربوط بمشروع Supabase `occukboecvnzjnatubre` (المخطط مُشغَّل).
+
+**طريقة الدخول التي تعمل الآن بدون لمس لوحة Supabase: البريد + كلمة المرور.**
+
+1. افتح الرابط → «تخطٍّ» → اضغط «ليس لديك حساب؟ أنشئ واحداً».
+2. أدخل بريدك وكلمة مرور (٨ أحرف فأكثر) → «إنشاء حساب».
+3. يصلك بريد «Confirm your signup». اضغط رابطه. **ستظهر صفحة فارغة أو `localhost` — هذا طبيعي**؛ التأكيد يتم في خادم Supabase قبل التحويل.
+4. عد إلى التطبيق → «تسجيل الدخول» بالبريد وكلمة المرور نفسها → تُكمل ملفك وتدخل.
+
+كل الطرق الأخرى في صفحة الدخول تحتاج إعداداً من الجدول التالي. رتّبتها من الأسرع إلى الأبطأ:
+
+| الطريقة | ماذا ينقصها | أين | الخطوة |
+|---|---|---|---|
+| رابط البريد يفتح التطبيق بدل صفحة فارغة | Site URL و Redirect URLs | Authentication → **URL Configuration** | Site URL = `https://alsawagh0-ui.github.io/abdullah/almunjez/` ، وأضف في Redirect URLs: `https://alsawagh0-ui.github.io/abdullah/almunjez/**` |
+| رمز من ٦ أرقام في البريد (بدل الرابط) | القالب لا يحوي الرمز | Authentication → **Email Templates** → Magic Link | أضف سطراً فيه `{{ .Token }}` (مثلاً: `رمز الدخول: {{ .Token }}`). إن كان التعديل مقفلاً فتجاهل هذه الطريقة — كلمة المرور تكفي |
+| Google | OAuth Client (مجاني) | console.cloud.google.com → APIs & Services → Credentials → OAuth client ID (Web) ثم Supabase → Authentication → Providers → **Google** | Authorized redirect URI في Google = `https://occukboecvnzjnatubre.supabase.co/auth/v1/callback` ، ثم انسخ Client ID/Secret إلى Supabase |
+| Apple | حساب مطور + Services ID | الجدول «أ» أدناه | |
+| الجوال (SMS) | مزوّد SMS مدفوع | Authentication → Providers → **Phone** | Twilio أو MessageBird |
+
+ملاحظة: أي تغيير في Supabase لا يحتاج نشراً جديداً للتطبيق؛ يعمل فور الحفظ.
+
 ## أ. Apple Developer (مرة واحدة)
 
 | # | أين | ماذا | تنتج |
@@ -21,7 +44,7 @@
 | # | أين | ماذا |
 |---|---|---|
 | 1 | supabase.com → New project | أقرب منطقة للخليج؛ احفظ كلمة مرور قاعدة البيانات |
-| 2 | SQL Editor | الصق محتوى `backend/schema/001_initial.sql` وشغّله، ثم `002_push_cron.sql` بعد نشر الدالة (الخطوة 6) |
+| 2 | SQL Editor | الصق محتوى `backend/schema/001_initial.sql` وشغّله ✅ (مُنفَّذ)، ثم `003_storage.sql` (حاوية الملفات الخاصة لصور الإثبات — دقيقة واحدة)، ثم `002_push_cron.sql` بعد نشر الدالة (الخطوة 6) |
 | 3 | Authentication → Providers → **Apple** | فعّل، Client IDs = `kw.almunjez.almunjez,kw.almunjez.web`، وSecret Key يُولَّد من مفتاح الخطوة أ‑4 (الدليل في صفحة الإعداد نفسها) |
 | 4 | Authentication → Providers → **Phone** | فعّل، اختر مزوّد SMS (Twilio أو MessageBird) وضع مفاتيحه |
 | 5 | Project Settings → API | انسخ **Project URL** و**anon/publishable key** |

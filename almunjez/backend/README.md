@@ -33,7 +33,13 @@ claim_concurrency: PASS
 
 ```bash
 supabase db push            # or: psql "$SUPABASE_DB_URL" -f backend/schema/001_initial.sql
+psql "$SUPABASE_DB_URL" -f backend/schema/003_storage.sql   # private `task-files` bucket + policies (proof photos)
 ```
+
+`003_storage.sql` also runs from the dashboard's SQL Editor. It creates the `task-files`
+bucket (30 MB, jpeg/png/heic/pdf) and RLS on `storage.objects` that mirrors `can_view_task`
+from the object path alone, so members see their group's files and personal files stay
+private; `tests/storage.sql` asserts exactly that.
 
 The file detects `auth.users`, `pg_cron`, and the `authenticated`/`anon` roles and wires the
 trigger, schedules and grants only when they exist, so the same file runs in both environments.

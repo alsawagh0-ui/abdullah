@@ -51,7 +51,7 @@ tables and the reasons behind their shape; the SQL is the contract.
 |---|---|---|
 | `tasks` | the task | see below |
 | `task_participants` | collaborators on collaborative tasks | PK (task, user) |
-| `task_attachments` | files and proof | `storage_path` unique, `kind` (`attachment`, `proof`), `mime`, `size_bytes` ≤ 30 MB |
+| `task_attachments` | files and proof | `storage_path` unique, `kind` (`attachment`, `proof`), `mime`, `size_bytes` ≤ 30 MB. Objects live in the private `task-files` bucket (`003_storage.sql`); its policies derive visibility from the path (`groups/<g>/tasks/<t>/…` → active members, `personal/<u>/tasks/<t>/…` → owner) |
 | `task_comments` | lightweight comments | `kind` (`comment`, `proof_note`, `rejection_reason`, `system`), `edited_at`, `deleted_at` |
 | `recurrence_rules` | Phase 2 templates | `template` jsonb, `rrule`, `timezone`, `next_run_at`, `active` |
 
