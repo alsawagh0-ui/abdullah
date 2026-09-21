@@ -33,6 +33,16 @@ TRACKS = {
         "notes": {"fiqh": "40 درجة عبادات + 20 درجة معاملات"},
         # عدد أسئلة الاختبار الفعلي لكل مادة (المجموع 50)
         "exam": {"fiqh": 30, "hadith": 5, "aqeedah": 5, "nahw": 5, "tafsir": 3, "tajweed": 2},
+        # ورقة الاختبار الكاملة: لكل مادة عدد أسئلة كل نوع، والدرجة موزعة على الأسئلة
+        "paper": {
+            "fiqh":    {"mcq": 8, "tf": 6, "fill": 3, "written": 6},
+            "hadith":  {"mcq": 2, "tf": 2, "fill": 1, "written": 2},
+            "aqeedah": {"mcq": 2, "tf": 2, "fill": 1, "written": 2},
+            "nahw":    {"mcq": 3, "tf": 2, "fill": 1, "written": 1},
+            "tafsir":  {"mcq": 2, "tf": 1, "fill": 1, "written": 0},
+            "tajweed": {"mcq": 2, "tf": 1, "fill": 0, "written": 1},
+            "mithaq":  {},
+        },
     },
     "muadhin": {
         "name": "مؤذن",
@@ -43,11 +53,20 @@ TRACKS = {
         "marks_pending": True,
         "notes": {},
         "exam": {"fiqh": 20, "hadith": 8, "aqeedah": 8, "tafsir": 7, "tajweed": 7},
+        "paper": {
+            "fiqh":    {"mcq": 5, "tf": 4, "fill": 2, "written": 3},
+            "hadith":  {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
+            "aqeedah": {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
+            "tafsir":  {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
+            "tajweed": {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
+        },
     },
 }
 
 questions = json.loads((ROOT / "questions.json").read_text(encoding="utf-8"))
 mcq = json.loads((ROOT / "mcq.json").read_text(encoding="utf-8"))
+tf = json.loads((ROOT / "tf.json").read_text(encoding="utf-8"))
+fill = json.loads((ROOT / "fill.json").read_text(encoding="utf-8"))
 plan = md("00-الخطة-وتحليل-الاختبارات.md")
 
 data = {"built": datetime.date.today().isoformat(), "plan": plan, "tracks": {}, "subjects": {}}
@@ -57,6 +76,8 @@ for sid, s in SUBJECTS.items():
         "notes": (md(s["file"]) + ("\n\n" + md("01b-الفقه-إضافات-من-دليل-الطالب.md") if sid=="fiqh" else "")) if s["file"] else "## المقرر لم يُرسل بعد\n\nأرسل صور أو ملف ميثاق المسجد ليُضاف هنا.",
         "questions": [q for q in questions if q["s"] == sid],
         "mcq": [q for q in mcq if q["s"] == sid],
+        "tf": [q for q in tf if q["s"] == sid],
+        "fill": [q for q in fill if q["s"] == sid],
     }
 for tid, t in TRACKS.items():
     data["tracks"][tid] = t

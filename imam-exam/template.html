@@ -107,6 +107,28 @@ h3{font-size:1.15rem}
 .score{font-family:var(--display);font-size:3rem;font-weight:700;color:var(--accent);line-height:1;font-variant-numeric:tabular-nums}
 .score small{font-size:1.1rem;color:var(--muted);font-family:var(--body);font-weight:400}
 .timer{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem}
+.paper-cta{border:2px solid var(--accent);background:var(--accent-soft)}
+.paper-cta h2{color:var(--accent)}
+.sect{margin-top:22px;border-top:2px solid var(--line);padding-top:14px}
+.sect h2{color:var(--gold)}
+.sect .hint{color:var(--muted);font-size:.88rem}
+.qbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin-top:10px}
+.qbox .qh{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.qbox .qno{font-family:var(--display);font-weight:700;color:var(--accent);min-width:2.2em}
+.qbox .qtx{font-size:1.05rem;font-weight:600;flex:1;min-width:12ch}
+.qbox .mk2{font-size:.78rem;color:var(--muted);white-space:nowrap}
+.tfrow{display:flex;gap:8px;margin-top:10px}
+.tfrow button{flex:0 0 auto;min-width:88px}
+.wline{width:100%;border:0;border-bottom:1.5px dashed var(--line);background:transparent;color:var(--ink);font:inherit;padding:8px 2px;margin-top:8px}
+.wline:focus{outline:none;border-bottom-color:var(--accent)}
+.warea{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;padding:10px;margin-top:8px;min-height:80px;resize:vertical}
+.model{border-right:3px solid var(--gold);background:var(--gold-soft);padding:10px 12px;border-radius:0 10px 10px 0;margin-top:10px;white-space:pre-line;line-height:1.7}
+.selfmark{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.selfmark span{color:var(--muted);font-size:.85rem}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:.78rem;font-weight:600}
+.badge.ok{background:var(--accent-soft);color:var(--ok)}
+.badge.no{background:var(--gold-soft);color:var(--danger)}
+.sticky-sub{position:sticky;top:calc(env(safe-area-inset-top,0px) + 56px);z-index:4;background:var(--bg);padding-block:8px;border-bottom:1px solid var(--line)}
 footer{margin-top:40px;color:var(--muted);font-size:.8rem}
 @media (prefers-reduced-motion:reduce){.choice{transition:none}}
 </style>
@@ -192,6 +214,7 @@ function track(tid){
     <div class="card count"><span class="n">${left>=0?left:0}</span><span class="l">${left>=0?'يوماً على الاختبار التحريري':'انتهى موعد الاختبار'} (${fmtDate(t.exam_date)})</span></div>
     ${t.marks_pending?`<div class="card"><span class="pill gold">تنبيه</span> توزيع درجات هذا المسار لم يصل بعد. المواد أدناه حسب نموذج اختبار المؤذنين السابق، والمحتوى مشترك مع مسار الإمام لأن المقرر واحد.</div>`:''}
     <a class="card exam-cta" href="#/${tid}/exam" style="text-decoration:none;color:inherit"><h2>الاختبار الفعلي</h2><span>${examCount(t)} سؤال اختيار من متعدد، تُسحب عشوائياً من بنك ${mcqTotal(t)} سؤال، بتوزيع الدرجات الحقيقي، والنتيجة من 100.${store.get('best:'+tid,null)!=null?' أفضل نتيجة لك: <b>'+store.get('best:'+tid)+'</b>':''}</span><span class="go" style="display:inline-block;background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;justify-self:start">ابدأ الاختبار</span></a>
+    <a class="card paper-cta" href="#/${tid}/paper" style="text-decoration:none;color:inherit"><h2>ورقة اختبار كاملة (نظام الوزارة)</h2><span>ورقة مطابقة لنماذج الاختبارات السابقة: مجالات مرتبة، واختيار من متعدد، وصح وخطأ، وأكمل، وأسئلة مقالية. تُصحح آلياً مع تقييم ذاتي للمقالي، والنتيجة من 100.${store.get('bestPaper:'+tid,null)!=null?' أفضل نتيجة: <b>'+store.get('bestPaper:'+tid)+'</b>':''}</span><span class="go" style="display:inline-block;background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;justify-self:start">ابدأ الورقة</span></a>
     <h2>المواد حسب وزن الدرجات</h2>
     <div class="subjects">
       ${Object.entries(t.marks).map(([sid,m])=>{const s=DATA.subjects[sid];const d=done[sid]||{};const known=Object.values(d).filter(x=>x==='y').length;return `<a class="subj" href="#/${tid}/${sid}">
@@ -308,12 +331,110 @@ function exam(tid){
   render();
 }
 
+
+// ====== ورقة اختبار كاملة على نظام الاختبارات السابقة ======
+const SECT_ORDER=['tafsir','tajweed','hadith','aqeedah','fiqh','nahw','mithaq'];
+function pick(arr,n){return shuffle([...arr]).slice(0,n);}
+function buildPaper(t){
+  const secs=[];
+  const order=SECT_ORDER.filter(s=>t.paper&&t.paper[s]&&Object.values(t.paper[s]).some(v=>v>0));
+  order.forEach(sid=>{
+    const conf=t.paper[sid], sub=DATA.subjects[sid], items=[];
+    pick(sub.mcq||[],conf.mcq||0).forEach(q=>{const idx=shuffle(q.o.map((_,i)=>i));items.push({k:'mcq',q:q.q,o:idx.map(i=>q.o[i]),c:idx.indexOf(q.c),pick:-1});});
+    pick(sub.tf||[],conf.tf||0).forEach(q=>items.push({k:'tf',q:q.q,t:q.t,pick:null}));
+    pick(sub.fill||[],conf.fill||0).forEach(q=>items.push({k:'fill',q:q.q,a:q.a,val:'',self:null}));
+    pick(sub.questions||[],conf.written||0).forEach(q=>items.push({k:'written',q:q.q,a:q.a,val:'',self:null}));
+    if(items.length) secs.push({sid,name:sub.name,items});
+  });
+  // توزيع الدرجات: درجة المادة تُقسم على عدد أسئلتها
+  secs.forEach(sc=>{const w=t.marks_pending?(100/secs.length):(t.marks[sc.sid]||0);sc.w=w;sc.per=w/sc.items.length;});
+  return secs;
+}
+function paper(tid){
+  const t=DATA.tracks[tid]; if(!t||!t.paper) return home();
+  crumbs.innerHTML=`<a href="#/">الرئيسية</a> › <a href="#/${tid}">${esc(t.name)}</a> › <span>ورقة اختبار</span>`;
+  const secs=buildPaper(tid&&t); const start=Date.now(); const total=secs.reduce((a,s)=>a+s.items.length,0);
+  const limit=total*120*1000; let tick=null; let graded=false;
+  const AR=['أ','ب','ج','د'];
+  function fmt(ms){ms=Math.max(0,ms);const m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000);return `${m}:${String(s).padStart(2,'0')}`;}
+  function scoreNow(){
+    let got=0,max=0;
+    secs.forEach(sc=>{sc.items.forEach(it=>{max+=sc.per;
+      if(it.k==='mcq'&&it.pick===it.c)got+=sc.per;
+      else if(it.k==='tf'&&it.pick===it.t)got+=sc.per;
+      else if((it.k==='fill'||it.k==='written')&&it.self===1)got+=sc.per;
+      else if((it.k==='fill'||it.k==='written')&&it.self===0.5)got+=sc.per/2;
+    });});
+    return {got,max,pct:Math.round(100*got/max)};
+  }
+  function render(){
+    let n=0;
+    const html=secs.map((sc,si)=>{
+      const kinds=[['mcq','اختر الإجابة الصحيحة'],['tf','ضع صح أو خطأ'],['fill','أكمل الفراغ'],['written','أجب عما يلي']];
+      const inner=kinds.map(([k,label])=>{
+        const its=sc.items.filter(x=>x.k===k); if(!its.length)return '';
+        return `<div class="hint" style="margin-top:14px">${label}:</div>`+its.map(it=>{
+          n++; const gi=secs.flatMap(s=>s.items).indexOf(it);
+          const mk=`<span class="mk2">(${sc.per.toFixed(2)} درجة)</span>`;
+          let body='';
+          if(k==='mcq'){
+            body=`<div class="opts">${it.o.map((o,j)=>`<button class="opt ${graded?(j===it.c?'right':(j===it.pick?'wrong':'')):''}" data-gi="${gi}" data-k="${j}" aria-pressed="${it.pick===j}" ${graded?'disabled':''}>${AR[j]}) ${esc(o)}${graded&&j===it.c?' ✓':''}</button>`).join('')}</div>`;
+          } else if(k==='tf'){
+            body=`<div class="tfrow"><button class="btn ${it.pick===true?'ok':''} ${graded&&it.t===true?'ok':''}" data-gi="${gi}" data-tf="1" ${graded?'disabled':''}>صح</button><button class="btn ${it.pick===false?'no':''} ${graded&&it.t===false?'ok':''}" data-gi="${gi}" data-tf="0" ${graded?'disabled':''}>خطأ</button>${graded?`<span class="badge ${it.pick===it.t?'ok':'no'}">${it.pick===it.t?'صحيحة':'الصواب: '+(it.t?'صح':'خطأ')}</span>`:''}</div>`;
+          } else if(k==='fill'){
+            body=`<input class="wline" id="in${gi}" value="${esc(it.val)}" placeholder="اكتب الإجابة" data-gi="${gi}" ${graded?'disabled':''}>`;
+          } else {
+            body=`<textarea class="warea" id="in${gi}" placeholder="اكتب إجابتك" data-gi="${gi}" ${graded?'disabled':''}>${esc(it.val)}</textarea>`;
+          }
+          const model=(graded&&(k==='fill'||k==='written'))?`<div class="model"><b>الإجابة النموذجية:</b> ${esc(it.a)}</div>
+            <div class="selfmark"><span>قيّم إجابتك:</span>
+              <button class="btn ok" data-self="1" data-gi="${gi}">صحيحة</button>
+              <button class="btn" data-self="0.5" data-gi="${gi}">ناقصة</button>
+              <button class="btn no" data-self="0" data-gi="${gi}">خاطئة</button>
+              ${it.self!=null?`<span class="badge ${it.self?'ok':'no'}">${it.self===1?'أخذت الدرجة':it.self===0.5?'نصف درجة':'بلا درجة'}</span>`:''}</div>`:'';
+          return `<div class="qbox"><div class="qh"><span class="qno">س${n}</span><span class="qtx">${esc(it.q)}</span>${mk}</div>${body}${model}</div>`;
+        }).join('');
+      }).join('');
+      return `<section class="sect"><h2>المجال ${['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع'][si]}: ${esc(sc.name)} <span class="mk2">(${sc.w.toFixed(0)} درجة)</span></h2>${inner}</section>`;
+    }).join('');
+    const sc=graded?scoreNow():null;
+    app.innerHTML=`<section class="hero" style="padding-block:18px 8px"><h1>ورقة اختبار ${esc(t.name)}</h1>
+      <p>الزمن ${Math.round(limit/60000)} دقيقة. أجب عن جميع الأسئلة. الأسئلة المقالية تُقيَّم ذاتياً بعد ظهور الإجابة النموذجية.</p></section>
+      ${graded?`<div class="card" style="text-align:center"><div class="score">${sc.pct}<small> من 100</small></div><div style="color:var(--muted)">${sc.got.toFixed(1)} من ${sc.max.toFixed(0)} · الزمن المستغرق ${fmt(Date.now()-start)}</div></div>`:`<div class="sticky-sub"><div class="prog"><span>عدد الأسئلة <b>${total}</b></span><span class="timer" id="timer">المتبقي ${fmt(limit-(Date.now()-start))}</span></div></div>`}
+      ${html}
+      <div class="row" style="margin-top:20px">${graded?`<button class="btn primary" id="again">ورقة جديدة بأسئلة أخرى</button><a class="btn" href="#/${tid}">العودة للمواد</a>`:`<button class="btn primary" id="submit">تسليم الورقة وعرض النتيجة</button>`}</div>`;
+    const all=secs.flatMap(s=>s.items);
+    app.querySelectorAll('.opt[data-gi]').forEach(b=>b.onclick=()=>{all[+b.dataset.gi].pick=+b.dataset.k;render();});
+    app.querySelectorAll('[data-tf]').forEach(b=>b.onclick=()=>{all[+b.dataset.gi].pick=b.dataset.tf==='1';render();});
+    app.querySelectorAll('[data-gi].wline,[data-gi].warea').forEach(el=>el.oninput=()=>{all[+el.dataset.gi].val=el.value;});
+    app.querySelectorAll('[data-self]').forEach(b=>b.onclick=()=>{all[+b.dataset.gi].self=parseFloat(b.dataset.self);render();});
+    const sb=app.querySelector('#submit'); if(sb) sb.onclick=()=>grade();
+    const ag=app.querySelector('#again'); if(ag) ag.onclick=()=>paper(tid);
+    if(!graded){clearInterval(tick);tick=setInterval(()=>{const el=document.getElementById('timer');if(!el){clearInterval(tick);return;}const r=limit-(Date.now()-start);el.textContent='المتبقي '+fmt(r);if(r<=0){clearInterval(tick);grade();}},1000);}
+  }
+  function grade(){
+    clearInterval(tick); graded=true;
+    // احتساب المقالي مبدئياً: صحيح إذا تطابق جوهر الإجابة، وإلا يترك للتقييم الذاتي
+    secs.forEach(sc=>sc.items.forEach(it=>{
+      if((it.k==='fill'||it.k==='written')&&it.self==null){
+        const v=(it.val||'').replace(/[ً-ْ\s.،,]/g,'');
+        const a=(it.a||'').replace(/[ً-ْ\s.،,]/g,'');
+        if(v&&a&&(a.includes(v)||v.includes(a))) it.self=1;
+      }
+    }));
+    render(); window.scrollTo(0,0);
+    const s=scoreNow(); const b=store.get('bestPaper:'+tid,null); if(b==null||s.pct>b) store.set('bestPaper:'+tid,s.pct);
+  }
+  render();
+}
+
 function route(){
   const h=location.hash.replace(/^#\/?/,'').split('/').filter(Boolean);
   window.scrollTo(0,0);
   if(!h.length) return home();
   if(h.length===1) return track(h[0]);
   if(h[1]==='exam') return exam(h[0]);
+  if(h[1]==='paper') return paper(h[0]);
   return subject(h[0],h[1]);
 }
 window.addEventListener('hashchange',route); route();
