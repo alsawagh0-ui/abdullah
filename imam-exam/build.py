@@ -54,7 +54,7 @@ data = {"built": datetime.date.today().isoformat(), "plan": plan, "tracks": {}, 
 for sid, s in SUBJECTS.items():
     data["subjects"][sid] = {
         "name": s["name"], "source": s["source"],
-        "notes": md(s["file"]) if s["file"] else "## المقرر لم يُرسل بعد\n\nأرسل صور أو ملف ميثاق المسجد ليُضاف هنا.",
+        "notes": (md(s["file"]) + ("\n\n" + md("01b-الفقه-إضافات-من-دليل-الطالب.md") if sid=="fiqh" else "")) if s["file"] else "## المقرر لم يُرسل بعد\n\nأرسل صور أو ملف ميثاق المسجد ليُضاف هنا.",
         "questions": [q for q in questions if q["s"] == sid],
         "mcq": [q for q in mcq if q["s"] == sid],
     }
