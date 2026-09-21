@@ -31,6 +31,8 @@ TRACKS = {
         "oral": "القرآن الكريم: مقابلة شفوية بعد الاختبار التحريري",
         "marks": {"fiqh": 60, "hadith": 10, "aqeedah": 10, "nahw": 10, "tafsir": 4, "tajweed": 4, "mithaq": 2},
         "notes": {"fiqh": "40 درجة عبادات + 20 درجة معاملات"},
+        # عدد أسئلة الاختبار الفعلي لكل مادة (المجموع 50)
+        "exam": {"fiqh": 30, "hadith": 5, "aqeedah": 5, "nahw": 5, "tafsir": 3, "tajweed": 2},
     },
     "muadhin": {
         "name": "مؤذن",
@@ -40,10 +42,12 @@ TRACKS = {
         "marks": {"fiqh": None, "hadith": None, "aqeedah": None, "tafsir": None, "tajweed": None},
         "marks_pending": True,
         "notes": {},
+        "exam": {"fiqh": 20, "hadith": 8, "aqeedah": 8, "tafsir": 7, "tajweed": 7},
     },
 }
 
 questions = json.loads((ROOT / "questions.json").read_text(encoding="utf-8"))
+mcq = json.loads((ROOT / "mcq.json").read_text(encoding="utf-8"))
 plan = md("00-الخطة-وتحليل-الاختبارات.md")
 
 data = {"built": datetime.date.today().isoformat(), "plan": plan, "tracks": {}, "subjects": {}}
@@ -52,6 +56,7 @@ for sid, s in SUBJECTS.items():
         "name": s["name"], "source": s["source"],
         "notes": md(s["file"]) if s["file"] else "## المقرر لم يُرسل بعد\n\nأرسل صور أو ملف ميثاق المسجد ليُضاف هنا.",
         "questions": [q for q in questions if q["s"] == sid],
+        "mcq": [q for q in mcq if q["s"] == sid],
     }
 for tid, t in TRACKS.items():
     data["tracks"][tid] = t

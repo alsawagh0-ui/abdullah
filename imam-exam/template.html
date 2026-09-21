@@ -96,6 +96,17 @@ h3{font-size:1.15rem}
 .prog{display:flex;gap:14px;flex-wrap:wrap;font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .prog b{color:var(--ink)}
 .empty{color:var(--muted);padding:20px;text-align:center}
+.exam-cta{display:grid;gap:8px;border:2px solid var(--gold);background:var(--gold-soft)}
+.exam-cta h2{color:var(--gold)}
+.opts{display:grid;gap:8px;margin-top:10px}
+.opt{text-align:right;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:12px 14px;border-radius:10px;font-size:1rem;line-height:1.5}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt.right{border-color:var(--ok);background:var(--accent-soft)}
+.opt.wrong{border-color:var(--danger)}
+.pbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.pbar i{display:block;height:100%;background:var(--accent)}
+.score{font-family:var(--display);font-size:3rem;font-weight:700;color:var(--accent);line-height:1;font-variant-numeric:tabular-nums}
+.score small{font-size:1.1rem;color:var(--muted);font-family:var(--body);font-weight:400}
+.timer{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.9rem}
 footer{margin-top:40px;color:var(--muted);font-size:.8rem}
 @media (prefers-reduced-motion:reduce){.choice{transition:none}}
 </style>
@@ -180,6 +191,7 @@ function track(tid){
   <div class="stack">
     <div class="card count"><span class="n">${left>=0?left:0}</span><span class="l">${left>=0?'يوماً على الاختبار التحريري':'انتهى موعد الاختبار'} (${fmtDate(t.exam_date)})</span></div>
     ${t.marks_pending?`<div class="card"><span class="pill gold">تنبيه</span> توزيع درجات هذا المسار لم يصل بعد. المواد أدناه حسب نموذج اختبار المؤذنين السابق، والمحتوى مشترك مع مسار الإمام لأن المقرر واحد.</div>`:''}
+    <a class="card exam-cta" href="#/${tid}/exam" style="text-decoration:none;color:inherit"><h2>الاختبار الفعلي</h2><span>${examCount(t)} سؤال اختيار من متعدد، تُسحب عشوائياً من بنك ${mcqTotal(t)} سؤال، بتوزيع الدرجات الحقيقي، والنتيجة من 100.${store.get('best:'+tid,null)!=null?' أفضل نتيجة لك: <b>'+store.get('best:'+tid)+'</b>':''}</span><span class="go" style="display:inline-block;background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;justify-self:start">ابدأ الاختبار</span></a>
     <h2>المواد حسب وزن الدرجات</h2>
     <div class="subjects">
       ${Object.entries(t.marks).map(([sid,m])=>{const s=DATA.subjects[sid];const d=done[sid]||{};const known=Object.values(d).filter(x=>x==='y').length;return `<a class="subj" href="#/${tid}/${sid}">
@@ -240,11 +252,68 @@ function quiz(pane,sid,s){
   render();
 }
 
+
+function examCount(t){return Object.values(t.exam||{}).reduce((a,b)=>a+b,0);}
+function mcqTotal(t){return Object.keys(t.exam||{}).reduce((a,s)=>a+(DATA.subjects[s]?.mcq.length||0),0);}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildExam(t){
+  const qs=[];
+  for(const [sid,n] of Object.entries(t.exam||{})){
+    const pool=shuffle([...(DATA.subjects[sid]?.mcq||[])]).slice(0,n);
+    pool.forEach(q=>{const idx=shuffle(q.o.map((_,i)=>i));qs.push({s:sid,q:q.q,o:idx.map(i=>q.o[i]),c:idx.indexOf(q.c),pick:-1});});
+  }
+  return shuffle(qs);
+}
+function exam(tid){
+  const t=DATA.tracks[tid]; if(!t||!t.exam) return home();
+  crumbs.innerHTML=`<a href="#/">الرئيسية</a> › <a href="#/${tid}">${esc(t.name)}</a> › <span>الاختبار الفعلي</span>`;
+  const qs=buildExam(t); let i=0; const start=Date.now(); const limit=examCount(t)*75*1000; let tick=null;
+  function fmt(ms){ms=Math.max(0,ms);const m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000);return `${m}:${String(s).padStart(2,'0')}`;}
+  function render(){
+    const q=qs[i]; const answered=qs.filter(x=>x.pick>=0).length;
+    app.innerHTML=`<section class="hero" style="padding-block:20px 10px"><h1>الاختبار الفعلي</h1></section>
+    <div class="stack">
+      <div class="prog"><span>السؤال <b>${i+1}</b> من <b>${qs.length}</b></span><span>أجبت <b>${answered}</b></span><span class="timer" id="timer">المتبقي ${fmt(limit-(Date.now()-start))}</span></div>
+      <div class="pbar"><i style="width:${Math.round(100*answered/qs.length)}%"></i></div>
+      <div class="qcard"><div class="qn">${esc(DATA.subjects[q.s].name)}</div><div class="qt">${esc(q.q)}</div>
+        <div class="opts">${q.o.map((o,k)=>`<button class="opt" data-k="${k}" aria-pressed="${q.pick===k}">${esc(o)}</button>`).join('')}</div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" id="prev" ${i===0?'disabled':''}>السابق</button>
+          ${i<qs.length-1?`<button class="btn primary" id="next">التالي</button>`:''}
+          <button class="btn ${i===qs.length-1?'primary':''}" id="finish">${answered===qs.length?'إنهاء وعرض النتيجة':'إنهاء الاختبار'}</button>
+        </div></div></div>`;
+    app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{q.pick=+b.dataset.k;if(i<qs.length-1){i++;render();}else render();});
+    const n=app.querySelector('#next'); if(n) n.onclick=()=>{i++;render();};
+    app.querySelector('#prev').onclick=()=>{if(i>0){i--;render();}};
+    app.querySelector('#finish').onclick=()=>{const left=qs.length-qs.filter(x=>x.pick>=0).length; if(left&&!confirm(`بقي ${left} سؤالاً بلا إجابة، هل تريد الإنهاء؟`))return; finish();};
+    clearInterval(tick); tick=setInterval(()=>{const el=document.getElementById('timer'); if(!el){clearInterval(tick);return;} const r=limit-(Date.now()-start); el.textContent='المتبقي '+fmt(r); if(r<=0){clearInterval(tick);finish();}},1000);
+  }
+  function finish(){
+    clearInterval(tick);
+    const per={}; qs.forEach(q=>{per[q.s]=per[q.s]||{n:0,ok:0};per[q.s].n++;if(q.pick===q.c)per[q.s].ok++;});
+    let total=0, max=0; const rows=Object.entries(per).map(([s,r])=>{const w=t.marks_pending?100/Object.keys(per).length:(t.marks[s]||0);const got=w*r.ok/r.n;total+=got;max+=w;return {s,r,w,got};});
+    const pct=Math.round(100*total/max); const best=store.get('best:'+tid,null); if(best==null||pct>best) store.set('best:'+tid,pct);
+    const wrong=qs.filter(q=>q.pick!==q.c);
+    app.innerHTML=`<section class="hero" style="padding-block:20px 10px"><h1>النتيجة</h1></section>
+    <div class="stack">
+      <div class="card"><div class="score">${pct}<small> من 100</small></div><div style="color:var(--muted)">${pct>=90?'ممتاز، هذا مستوى النجاح المطلوب.':pct>=75?'جيد، راجع الأخطاء أدناه وأعد الاختبار.':'تحتاج مراجعة مركزة، ابدأ بالمواد الأقل نتيجة.'} الوقت: ${fmt(Date.now()-start)}</div></div>
+      <div class="card notes"><div class="tbl"><table><tr><th>المادة</th><th>صحيح</th><th>من</th><th>الدرجة</th></tr>${rows.sort((a,b)=>b.w-a.w).map(x=>`<tr><td>${esc(DATA.subjects[x.s].name)}</td><td>${x.r.ok}</td><td>${x.r.n}</td><td>${x.got.toFixed(1)} / ${x.w.toFixed(0)}</td></tr>`).join('')}</table></div></div>
+      <div class="row"><button class="btn primary" id="again">اختبار جديد بأسئلة أخرى</button><a class="btn" href="#/${tid}">العودة للمواد</a></div>
+      <h2>مراجعة الأخطاء (${wrong.length})</h2>
+      ${wrong.length?wrong.map(q=>`<div class="qcard"><div class="qn">${esc(DATA.subjects[q.s].name)}</div><div class="qt" style="font-size:1.1rem">${esc(q.q)}</div><div class="opts">${q.o.map((o,k)=>`<div class="opt ${k===q.c?'right':(k===q.pick?'wrong':'')}">${esc(o)}${k===q.c?' ✓':(k===q.pick?' ✗':'')}</div>`).join('')}</div></div>`).join(''):'<div class="empty">لا أخطاء. أحسنت.</div>'}
+    </div>`;
+    app.querySelector('#again').onclick=()=>exam(tid);
+    window.scrollTo(0,0);
+  }
+  render();
+}
+
 function route(){
   const h=location.hash.replace(/^#\/?/,'').split('/').filter(Boolean);
   window.scrollTo(0,0);
   if(!h.length) return home();
   if(h.length===1) return track(h[0]);
+  if(h[1]==='exam') return exam(h[0]);
   return subject(h[0],h[1]);
 }
 window.addEventListener('hashchange',route); route();
