@@ -9,6 +9,8 @@ import json, pathlib, datetime
 
 ROOT = pathlib.Path(__file__).resolve().parent
 OUT = ROOT.parent / "website" / "exam" / "index.html"
+# نسخة ثانية تُنشر عبر GitHub Pages من مجلد docs
+PAGES = ROOT.parent / "docs" / "index.html"
 
 def md(name):
     return (ROOT / name).read_text(encoding="utf-8")
@@ -88,4 +90,6 @@ template = (ROOT / "template.html").read_text(encoding="utf-8")
 payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
 OUT.parent.mkdir(parents=True, exist_ok=True)
 OUT.write_text(template.replace("/*__DATA__*/null", payload), encoding="utf-8")
-print("wrote", OUT, f"{OUT.stat().st_size/1024:.0f} KB")
+PAGES.parent.mkdir(parents=True, exist_ok=True)
+PAGES.write_text(OUT.read_text(encoding="utf-8"), encoding="utf-8")
+print("wrote", OUT, "and", PAGES, f"{OUT.stat().st_size/1024:.0f} KB")
