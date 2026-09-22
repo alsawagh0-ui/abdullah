@@ -304,12 +304,12 @@ function exam(tid){
         <div class="row" style="margin-top:14px">
           <button class="btn" id="prev" ${i===0?'disabled':''}>السابق</button>
           ${i<qs.length-1?`<button class="btn primary" id="next">التالي</button>`:''}
-          <button class="btn ${i===qs.length-1?'primary':''}" id="finish">${answered===qs.length?'إنهاء وعرض النتيجة':'إنهاء الاختبار'}</button>
+          <button class="btn ${i===qs.length-1?'primary':''}" id="finish">${answered===qs.length?'إنهاء وعرض النتيجة':`بقي ${qs.length-answered} بلا إجابة`}</button>
         </div></div></div>`;
     app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{q.pick=+b.dataset.k;if(i<qs.length-1){i++;render();}else render();});
     const n=app.querySelector('#next'); if(n) n.onclick=()=>{i++;render();};
     app.querySelector('#prev').onclick=()=>{if(i>0){i--;render();}};
-    app.querySelector('#finish').onclick=()=>{const left=qs.length-qs.filter(x=>x.pick>=0).length; if(left&&!confirm(`بقي ${left} سؤالاً بلا إجابة، هل تريد الإنهاء؟`))return; finish();};
+    app.querySelector('#finish').onclick=()=>{const un=qs.map((x,k)=>[x,k]).filter(([x])=>x.pick<0); if(un.length){ i=un[0][1]; shown=false; render(); const el=document.querySelector('.qcard'); if(el){el.style.borderColor='var(--danger)'; setTimeout(()=>{el.style.borderColor='';},1600);} return;} finish();};
     clearInterval(tick); tick=setInterval(()=>{const el=document.getElementById('timer'); if(!el){clearInterval(tick);return;} const r=limit-(Date.now()-start); el.textContent='المتبقي '+fmt(r); if(r<=0){clearInterval(tick);finish();}},1000);
   }
   function finish(){
@@ -358,6 +358,11 @@ function buildPaper(t){
   secs.forEach(sc=>{const w=t.marks_pending?(100/secs.length):(t.marks[sc.sid]||0);sc.w=w;sc.per=w/sc.items.length;});
   return secs;
 }
+function isAnswered(it){
+  if(it.k==='mcq') return it.pick>=0;
+  if(it.k==='tf') return it.pick!==null && it.pick!==undefined;
+  return (it.val||'').trim().length>0;
+}
 function paper(tid){
   const t=DATA.tracks[tid]; if(!t||!t.paper) return home();
   crumbs.innerHTML=`<a href="#/">الرئيسية</a> › <a href="#/${tid}">${esc(t.name)}</a> › <span>ورقة اختبار</span>`;
@@ -400,7 +405,7 @@ function paper(tid){
               <button class="btn" data-self="0.5" data-gi="${gi}">ناقصة</button>
               <button class="btn no" data-self="0" data-gi="${gi}">خاطئة</button>
               ${it.self!=null?`<span class="badge ${it.self?'ok':'no'}">${it.self===1?'أخذت الدرجة':it.self===0.5?'نصف درجة':'بلا درجة'}</span>`:''}</div>`:'';
-          return `<div class="qbox"><div class="qh"><span class="qno">س${n}</span><span class="qtx">${esc(it.q)}</span>${mk}</div>${body}${model}</div>`;
+          return `<div class="qbox" id="q${gi}"><div class="qh"><span class="qno">س${n}</span><span class="qtx">${esc(it.q)}</span>${mk}</div>${body}${model}</div>`;
         }).join('');
       }).join('');
       return `<section class="sect"><h2>المجال ${['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع'][si]}: ${esc(sc.name)} <span class="mk2">(${sc.w.toFixed(0)} درجة)</span></h2>${inner}</section>`;
@@ -408,15 +413,16 @@ function paper(tid){
     const sc=graded?scoreNow():null;
     app.innerHTML=`<section class="hero" style="padding-block:18px 8px"><h1>ورقة اختبار ${esc(t.name)}</h1>
       <p>الزمن ${Math.round(limit/60000)} دقيقة. أجب عن جميع الأسئلة. الأسئلة المقالية تُقيَّم ذاتياً بعد ظهور الإجابة النموذجية.</p></section>
-      ${graded?`<div class="card" style="text-align:center"><div class="score">${sc.pct}<small> من 100</small></div><div style="margin:6px 0"><span class="badge ${sc.pct>=(t.pass||70)?'ok':'no'}">${sc.pct>=(t.pass||70)?'ناجح':'راسب'} · درجة النجاح ${t.pass||70}</span></div><div style="color:var(--muted)">${sc.got.toFixed(1)} من ${sc.max.toFixed(0)} · الزمن المستغرق ${fmt(Date.now()-start)}</div></div>`:`<div class="sticky-sub"><div class="prog"><span>عدد الأسئلة <b>${total}</b></span><span class="timer" id="timer">المتبقي ${fmt(limit-(Date.now()-start))}</span></div></div>`}
+      ${graded?`<div class="card" style="text-align:center"><div class="score">${sc.pct}<small> من 100</small></div><div style="margin:6px 0"><span class="badge ${sc.pct>=(t.pass||70)?'ok':'no'}">${sc.pct>=(t.pass||70)?'ناجح':'راسب'} · درجة النجاح ${t.pass||70}</span></div><div style="color:var(--muted)">${sc.got.toFixed(1)} من ${sc.max.toFixed(0)} · الزمن المستغرق ${fmt(Date.now()-start)}</div></div>`:`<div class="sticky-sub"><div class="prog"><span>عدد الأسئلة <b>${total}</b></span><span>أجبت <b>${secs.flatMap(s=>s.items).filter(isAnswered).length}</b></span><span>بقي <b>${total-secs.flatMap(s=>s.items).filter(isAnswered).length}</b></span><span class="timer" id="timer">المتبقي ${fmt(limit-(Date.now()-start))}</span></div><div class="pbar" style="margin-top:6px"><i style="width:${Math.round(100*secs.flatMap(s=>s.items).filter(isAnswered).length/total)}%"></i></div></div>`}
       ${html}
-      <div class="row" style="margin-top:20px">${graded?`<button class="btn primary" id="again">ورقة جديدة بأسئلة أخرى</button><a class="btn" href="#/${tid}">العودة للمواد</a>`:`<button class="btn primary" id="submit">تسليم الورقة وعرض النتيجة</button>`}</div>`;
+      <div class="row" style="margin-top:20px">${graded?`<button class="btn primary" id="again">ورقة جديدة بأسئلة أخرى</button><a class="btn" href="#/${tid}">العودة للمواد</a>`:`<button class="btn primary" id="submit" ${secs.flatMap(s=>s.items).every(isAnswered)?'':'disabled style="opacity:.5;cursor:not-allowed"'}>تسليم الورقة وعرض النتيجة</button>${secs.flatMap(s=>s.items).every(isAnswered)?'':`<button class="btn" id="goNext">اذهب إلى أول سؤال بلا إجابة</button>`}`}</div>${graded?'':`<p class="hint" style="margin-top:8px">${secs.flatMap(s=>s.items).every(isAnswered)?'أجبت عن جميع الأسئلة، يمكنك التسليم.':'لا يمكن التسليم قبل الإجابة عن جميع الأسئلة. وإذا انتهى الوقت تُسلَّم الورقة تلقائياً بما أجبت.'}</p>`}`;
     const all=secs.flatMap(s=>s.items);
     app.querySelectorAll('.opt[data-gi]').forEach(b=>b.onclick=()=>{all[+b.dataset.gi].pick=+b.dataset.k;render();});
     app.querySelectorAll('[data-tf]').forEach(b=>b.onclick=()=>{all[+b.dataset.gi].pick=b.dataset.tf==='1';render();});
     app.querySelectorAll('[data-gi].wline,[data-gi].warea').forEach(el=>el.oninput=()=>{all[+el.dataset.gi].val=el.value;});
     app.querySelectorAll('[data-self]').forEach(b=>b.onclick=()=>{all[+b.dataset.gi].self=parseFloat(b.dataset.self);render();});
-    const sb=app.querySelector('#submit'); if(sb) sb.onclick=()=>grade();
+    const sb=app.querySelector('#submit'); if(sb) sb.onclick=()=>{ if(all.every(isAnswered)) grade(); };
+    const gn=app.querySelector('#goNext'); if(gn) gn.onclick=()=>{const k=all.findIndex(x=>!isAnswered(x)); const el=document.getElementById('q'+k); if(el){el.scrollIntoView({behavior:'smooth',block:'center'}); el.style.borderColor='var(--danger)'; setTimeout(()=>{el.style.borderColor='';},1600);} };
     const ag=app.querySelector('#again'); if(ag) ag.onclick=()=>paper(tid);
     if(!graded){clearInterval(tick);tick=setInterval(()=>{const el=document.getElementById('timer');if(!el){clearInterval(tick);return;}const r=limit-(Date.now()-start);el.textContent='المتبقي '+fmt(r);if(r<=0){clearInterval(tick);grade();}},1000);}
   }
