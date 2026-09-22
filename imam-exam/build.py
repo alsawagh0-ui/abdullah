@@ -14,12 +14,12 @@ def md(name):
     return (ROOT / name).read_text(encoding="utf-8")
 
 SUBJECTS = {
-    "fiqh":    {"name": "الفقه",       "file": "01-الفقه-مفيد-الصاحب.md",      "source": "مفيد الصاحب في تلخيص دليل الطالب"},
+    "fiqh":    {"name": "الفقه",       "file": "01-الفقه-مفيد-الصاحب.md",      "source": "دليل الطالب لنيل المطالب (المصدر المعتمد) + مختصراته"},
     "hadith":  {"name": "الحديث",      "file": "02-الحديث-الأربعون-النووية.md", "source": "الأربعون النووية"},
     "aqeedah": {"name": "العقيدة",     "file": "03-العقيدة-بريق-الجمان.md",    "source": "تلخيص بريق الجمان"},
     "nahw":    {"name": "النحو",       "file": "06-النحو-مراجعة.md",           "source": "مراجعة مركزة"},
     "tafsir":  {"name": "التفسير",     "file": "04-التفسير-جزء-عم.md",         "source": "مختصر زبدة التفسير، جزء عم"},
-    "tajweed": {"name": "التجويد",     "file": "05-التجويد.md",                "source": "أحكام التلاوة"},
+    "tajweed": {"name": "التجويد",     "file": "05-التجويد.md",                "source": "غاية المريد في علم التجويد، عطية قابل نصر"},
     "mithaq":  {"name": "ميثاق المسجد","file": None,                            "source": "لم يُرسل المقرر بعد"},
 }
 
@@ -73,7 +73,7 @@ data = {"built": datetime.date.today().isoformat(), "plan": plan, "tracks": {}, 
 for sid, s in SUBJECTS.items():
     data["subjects"][sid] = {
         "name": s["name"], "source": s["source"],
-        "notes": (md(s["file"]) + ("\n\n" + md("01b-الفقه-إضافات-من-دليل-الطالب.md") if sid=="fiqh" else "")) if s["file"] else "## المقرر لم يُرسل بعد\n\nأرسل صور أو ملف ميثاق المسجد ليُضاف هنا.",
+        "notes": (md(s["file"]) + ("\n\n" + md("07-دليل-الطالب-العبادات.md") + "\n\n" + md("01b-الفقه-إضافات-من-دليل-الطالب.md") if sid=="fiqh" else ("\n\n" + md("08-غاية-المريد-التجويد.md") if sid=="tajweed" else ""))) if s["file"] else "## المقرر لم يُرسل بعد\n\nأرسل صور أو ملف ميثاق المسجد ليُضاف هنا.",
         "questions": [q for q in questions if q["s"] == sid],
         "mcq": [q for q in mcq if q["s"] == sid],
         "tf": [q for q in tf if q["s"] == sid],
