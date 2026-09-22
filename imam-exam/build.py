@@ -28,7 +28,7 @@ TRACKS = {
     "imam": {
         "name": "إمام مسجد",
         "exam_date": "2026-10-06",
-        "oral": "القرآن الكريم: مقابلة شفوية بعد الاختبار التحريري",
+        "oral": "القرآن الكريم: حفظ خمسة أجزاء منها جزء عمّ، ويُختبر فيه شفوياً بعد التحريري",
         "marks": {"fiqh": 60, "hadith": 10, "aqeedah": 10, "nahw": 10, "tafsir": 4, "tajweed": 4, "mithaq": 2},
         "notes": {"fiqh": "40 درجة عبادات + 20 درجة معاملات"},
         # عدد أسئلة الاختبار الفعلي لكل مادة (المجموع 50)
@@ -47,18 +47,19 @@ TRACKS = {
     "muadhin": {
         "name": "مؤذن",
         "exam_date": "2026-10-06",
-        "oral": "القرآن الكريم: مقابلة شفوية بعد الاختبار التحريري",
-        # توزيع درجات المؤذنين لم يصل بعد؛ الترتيب حسب نموذج اختبار المؤذنين السابق.
-        "marks": {"fiqh": None, "hadith": None, "aqeedah": None, "tafsir": None, "tajweed": None},
+        "oral": "القرآن الكريم: حفظ ثلاثة أجزاء منها جزء عمّ، ويُختبر فيه شفوياً بعد التحريري",
+        # منهج المؤذنين: لا نحو فيه، والفقه عبادات فقط. توزيع الدرجات لم يُعلن بعد.
+        "marks": {"fiqh": None, "hadith": None, "aqeedah": None, "tafsir": None, "tajweed": None, "mithaq": None},
         "marks_pending": True,
         "notes": {},
-        "exam": {"fiqh": 20, "hadith": 8, "aqeedah": 8, "tafsir": 7, "tajweed": 7},
+        "exam": {"fiqh": 18, "hadith": 8, "aqeedah": 8, "tafsir": 7, "tajweed": 7, "mithaq": 2},
         "paper": {
             "fiqh":    {"mcq": 5, "tf": 4, "fill": 2, "written": 3},
             "hadith":  {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
             "aqeedah": {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
             "tafsir":  {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
             "tajweed": {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
+            "mithaq":  {"mcq": 2},
         },
     },
 }
