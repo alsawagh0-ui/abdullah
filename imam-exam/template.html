@@ -220,7 +220,7 @@ function track(tid){
       ${Object.entries(t.marks).map(([sid,m])=>{const s=DATA.subjects[sid];const d=done[sid]||{};const known=Object.values(d).filter(x=>x==='y').length;return `<a class="subj" href="#/${tid}/${sid}">
         <span class="nm">${esc(s.name)}</span>
         <span class="mk"><b>${m==null?'؟':m}</b><span>${m==null?'درجة':'درجة'}</span></span>
-        <span class="src">${esc(s.source)}${t.notes[sid]?' · '+esc(t.notes[sid]):''} · ${s.questions.length} سؤال${known?` · أتقنت ${known}`:''}</span>
+        <span class="src">${esc(s.source)}${t.notes[sid]?' · '+esc(t.notes[sid]):''} · ${s.questions.length||(s.mcq||[]).length} سؤال${known?` · أتقنت ${known}`:''}</span>
         ${m!=null?`<span class="bar"><i style="width:${Math.round(100*m/total)}%"></i></span>`:''}
       </a>`;}).join('')}
     </div>
@@ -236,7 +236,7 @@ function subject(tid,sid,mode){
   app.innerHTML=`<section class="hero"><h1>${esc(s.name)} <span class="pill gold">${m==null?'الدرجة غير محددة':m+' درجة'}</span></h1><p>${esc(s.source)}${t.notes[sid]?' · '+esc(t.notes[sid]):''}</p></section>
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-notes" aria-selected="${mode==='notes'}" data-mode="notes">الملخص</button>
-    <button role="tab" id="tab-quiz" aria-selected="${mode==='quiz'}" data-mode="quiz">اختبر نفسك (${s.questions.length})</button>
+    <button role="tab" id="tab-quiz" aria-selected="${mode==='quiz'}" data-mode="quiz">اختبر نفسك (${s.questions.length||(s.mcq||[]).length})</button>
   </div>
   <div id="pane"></div>`;
   app.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{store.set('mode:'+sid,b.dataset.mode);subject(tid,sid,b.dataset.mode);});
@@ -246,7 +246,8 @@ function subject(tid,sid,mode){
 }
 
 function quiz(pane,sid,s){
-  const qs=s.questions; if(!qs.length){pane.innerHTML='<div class="empty">لا توجد أسئلة لهذه المادة بعد.</div>';return;}
+  // عند عدم وجود أسئلة مقالية لهذه المادة، تُستخدم أسئلة الاختيار كبطاقات مراجعة
+  const qs=(s.questions&&s.questions.length)?s.questions:(s.mcq||[]).map(q=>({q:q.q,a:q.o[q.c]})); if(!qs.length){pane.innerHTML='<div class="empty">لا توجد أسئلة لهذه المادة بعد.</div>';return;}
   const done=store.get('done',{}); done[sid]=done[sid]||{};
   let order=qs.map((_,i)=>i); let idx=store.get('idx:'+sid,0)%qs.length; let shown=false;
   function render(){

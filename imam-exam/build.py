@@ -20,7 +20,7 @@ SUBJECTS = {
     "nahw":    {"name": "النحو",       "file": "06-النحو-مراجعة.md",           "source": "مراجعة مركزة"},
     "tafsir":  {"name": "التفسير",     "file": "04-التفسير-جزء-عم.md",         "source": "مختصر زبدة التفسير، جزء عم"},
     "tajweed": {"name": "التجويد",     "file": "05-التجويد.md",                "source": "غاية المريد في علم التجويد، عطية قابل نصر"},
-    "mithaq":  {"name": "ميثاق المسجد","file": None,                            "source": "لم يُرسل المقرر بعد"},
+    "mithaq":  {"name": "ميثاق المسجد","file": "09-ميثاق-المسجد.md",            "source": "ميثاق المسجد، الوثيقة المنظمة لعمل الإمام والخطيب والمؤذن"},
 }
 
 # الدرجات لكل مسار. غيّرها هنا فقط.
@@ -32,7 +32,7 @@ TRACKS = {
         "marks": {"fiqh": 60, "hadith": 10, "aqeedah": 10, "nahw": 10, "tafsir": 4, "tajweed": 4, "mithaq": 2},
         "notes": {"fiqh": "40 درجة عبادات + 20 درجة معاملات"},
         # عدد أسئلة الاختبار الفعلي لكل مادة (المجموع 50)
-        "exam": {"fiqh": 30, "hadith": 5, "aqeedah": 5, "nahw": 5, "tafsir": 3, "tajweed": 2},
+        "exam": {"fiqh": 29, "hadith": 5, "aqeedah": 5, "nahw": 5, "tafsir": 3, "tajweed": 2, "mithaq": 1},
         # ورقة الاختبار الكاملة: لكل مادة عدد أسئلة كل نوع، والدرجة موزعة على الأسئلة
         "paper": {
             "fiqh":    {"mcq": 8, "tf": 6, "fill": 3, "written": 6},
@@ -41,7 +41,7 @@ TRACKS = {
             "nahw":    {"mcq": 3, "tf": 2, "fill": 1, "written": 1},
             "tafsir":  {"mcq": 2, "tf": 1, "fill": 1, "written": 0},
             "tajweed": {"mcq": 2, "tf": 1, "fill": 0, "written": 1},
-            "mithaq":  {},
+            "mithaq":  {"mcq": 2},
         },
     },
     "muadhin": {
