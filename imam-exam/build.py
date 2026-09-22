@@ -17,7 +17,7 @@ SUBJECTS = {
     "fiqh":    {"name": "الفقه",       "file": "01-الفقه-مفيد-الصاحب.md",      "source": "دليل الطالب لنيل المطالب (المصدر المعتمد) + مختصراته"},
     "hadith":  {"name": "الحديث",      "file": "12-الحديث-شرح-ابن-دقيق.md", "source": "الأربعون النووية بشرح ابن دقيق العيد"},
     "aqeedah": {"name": "العقيدة",     "file": "13-العقيدة-بريق-الجمان-الأصل.md", "source": "بريق الجمان بشرح أركان الإيمان"},
-    "nahw":    {"name": "النحو",       "file": "06-النحو-مراجعة.md",           "source": "مراجعة مركزة"},
+    "nahw":    {"name": "النحو",       "file": "14-النحو-التحفة-السنية.md",   "source": "التحفة السنية بشرح المقدمة الآجرومية، محمد محيي الدين عبدالحميد"},
     "tafsir":  {"name": "التفسير",     "file": "04-التفسير-جزء-عم.md",         "source": "مختصر زبدة التفسير، جزء عم"},
     "tajweed": {"name": "التجويد",     "file": "05-التجويد.md",                "source": "غاية المريد في علم التجويد، عطية قابل نصر"},
     "mithaq":  {"name": "ميثاق المسجد","file": "09-ميثاق-المسجد.md",            "source": "ميثاق المسجد، الوثيقة المنظمة لعمل الإمام والخطيب والمؤذن"},
@@ -77,7 +77,7 @@ data = {"built": datetime.date.today().isoformat(), "plan": plan, "tracks": {}, 
 for sid, s in SUBJECTS.items():
     data["subjects"][sid] = {
         "name": s["name"], "source": s["source"],
-        "notes": ((md("07-دليل-الطالب-العبادات.md") + "\n\n" + md("10-المعاملات-الكوكب-الغارب.md") + "\n\n" + md("11-الجنايات-والحدود.md") + "\n\n" if sid=="fiqh" else "") + md(s["file"]) + ("\n\n" + md("01b-الفقه-إضافات-من-دليل-الطالب.md") if sid=="fiqh" else ("\n\n" + md("08-غاية-المريد-التجويد.md") if sid=="tajweed" else ("\n\n" + md("02-الحديث-الأربعون-النووية.md") if sid=="hadith" else ("\n\n" + md("03-العقيدة-بريق-الجمان.md") if sid=="aqeedah" else ""))))) if s["file"] else "## المقرر لم يُرسل بعد\n\nأرسل صور أو ملف ميثاق المسجد ليُضاف هنا.",
+        "notes": ((md("07-دليل-الطالب-العبادات.md") + "\n\n" + md("10-المعاملات-الكوكب-الغارب.md") + "\n\n" + md("11-الجنايات-والحدود.md") + "\n\n" if sid=="fiqh" else "") + md(s["file"]) + ("\n\n" + md("01b-الفقه-إضافات-من-دليل-الطالب.md") if sid=="fiqh" else ("\n\n" + md("08-غاية-المريد-التجويد.md") if sid=="tajweed" else ("\n\n" + md("02-الحديث-الأربعون-النووية.md") if sid=="hadith" else ("\n\n" + md("03-العقيدة-بريق-الجمان.md") if sid=="aqeedah" else ("\n\n" + md("06-النحو-مراجعة.md") if sid=="nahw" else "")))))) if s["file"] else "## المقرر لم يُرسل بعد\n\nأرسل صور أو ملف ميثاق المسجد ليُضاف هنا.",
         "questions": [q for q in questions if q["s"] == sid],
         "mcq": [q for q in mcq if q["s"] == sid],
         "tf": [q for q in tf if q["s"] == sid],
