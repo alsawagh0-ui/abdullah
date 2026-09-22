@@ -250,7 +250,7 @@ function track(tid){
   const left=daysLeft(t.exam_date);
   const total=Object.values(t.marks).reduce((a,b)=>a+(b||0),0);
   const done=store.get('done',{});
-  app.innerHTML=`<section class="hero"><h1>مسار ${esc(t.name)}</h1><p>${esc(t.oral)}.</p></section>
+  app.innerHTML=`<section class="hero"><h1>مسار ${esc(t.name)}</h1><p>المواد التحريرية ودرجاتها، مرتبة حسب وزنها.</p></section>
   <div class="stack">
     <div class="card count"><span class="n">${left>=0?left:0}</span><span class="l">${left>=0?'يوماً على الاختبار التحريري':'انتهى موعد الاختبار'} (${fmtDate(t.exam_date)}) · درجة النجاح <b>${t.pass||70}</b> من 100</span></div>
     ${t.marks_pending?`<div class="card"><span class="pill gold">تنبيه</span> توزيع درجات هذا المسار لم يصل بعد. المواد أدناه حسب نموذج اختبار المؤذنين السابق، والمحتوى مشترك مع مسار الإمام لأن المقرر واحد.</div>`:''}
