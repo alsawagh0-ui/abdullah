@@ -30,7 +30,9 @@ TRACKS = {
         "exam_date": "2026-10-06",
         "oral": "القرآن الكريم: حفظ خمسة أجزاء منها جزء عمّ، ويُختبر فيه شفوياً بعد التحريري",
         "marks": {"fiqh": 60, "hadith": 10, "aqeedah": 10, "nahw": 10, "tafsir": 4, "tajweed": 4, "mithaq": 2},
+        "pass": 70,
         "notes": {"fiqh": "40 درجة عبادات + 20 درجة معاملات"},
+        "scope": ["ibadat", "muamalat"],
         # عدد أسئلة الاختبار الفعلي لكل مادة (المجموع 50)
         "exam": {"fiqh": 29, "hadith": 5, "aqeedah": 5, "nahw": 5, "tafsir": 3, "tajweed": 2, "mithaq": 1},
         # ورقة الاختبار الكاملة: لكل مادة عدد أسئلة كل نوع، والدرجة موزعة على الأسئلة
@@ -48,17 +50,18 @@ TRACKS = {
         "name": "مؤذن",
         "exam_date": "2026-10-06",
         "oral": "القرآن الكريم: حفظ ثلاثة أجزاء منها جزء عمّ، ويُختبر فيه شفوياً بعد التحريري",
-        # منهج المؤذنين: لا نحو فيه، والفقه عبادات فقط. توزيع الدرجات لم يُعلن بعد.
-        "marks": {"fiqh": None, "hadith": None, "aqeedah": None, "tafsir": None, "tajweed": None, "mithaq": None},
-        "marks_pending": True,
-        "notes": {},
-        "exam": {"fiqh": 18, "hadith": 8, "aqeedah": 8, "tafsir": 7, "tajweed": 7, "mithaq": 2},
+        "pass": 70,
+        # منهج المؤذنين: لا نحو فيه، والفقه عبادات فقط (طهارة، صلاة، جنائز، زكاة، صوم، حج).
+        "marks": {"fiqh": 50, "hadith": 20, "aqeedah": 10, "tafsir": 8, "tajweed": 8, "mithaq": 4},
+        "notes": {"fiqh": "العبادات فقط: الطهارة والصلاة والجنائز والزكاة والصوم والحج"},
+        "scope": ["ibadat"],
+        "exam": {"fiqh": 25, "hadith": 10, "aqeedah": 5, "tafsir": 4, "tajweed": 4, "mithaq": 2},
         "paper": {
-            "fiqh":    {"mcq": 5, "tf": 4, "fill": 2, "written": 3},
-            "hadith":  {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
-            "aqeedah": {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
-            "tafsir":  {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
-            "tajweed": {"mcq": 3, "tf": 2, "fill": 1, "written": 2},
+            "fiqh":    {"mcq": 6, "tf": 5, "fill": 2, "written": 5},
+            "hadith":  {"mcq": 3, "tf": 2, "fill": 1, "written": 3},
+            "aqeedah": {"mcq": 2, "tf": 1, "fill": 1, "written": 1},
+            "tafsir":  {"mcq": 2, "tf": 1, "fill": 1, "written": 0},
+            "tajweed": {"mcq": 2, "tf": 1, "fill": 0, "written": 1},
             "mithaq":  {"mcq": 2},
         },
     },

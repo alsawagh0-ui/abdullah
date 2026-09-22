@@ -211,7 +211,7 @@ function track(tid){
   const done=store.get('done',{});
   app.innerHTML=`<section class="hero"><h1>مسار ${esc(t.name)}</h1><p>${esc(t.oral)}.</p></section>
   <div class="stack">
-    <div class="card count"><span class="n">${left>=0?left:0}</span><span class="l">${left>=0?'يوماً على الاختبار التحريري':'انتهى موعد الاختبار'} (${fmtDate(t.exam_date)})</span></div>
+    <div class="card count"><span class="n">${left>=0?left:0}</span><span class="l">${left>=0?'يوماً على الاختبار التحريري':'انتهى موعد الاختبار'} (${fmtDate(t.exam_date)}) · درجة النجاح <b>${t.pass||70}</b> من 100</span></div>
     ${t.marks_pending?`<div class="card"><span class="pill gold">تنبيه</span> توزيع درجات هذا المسار لم يصل بعد. المواد أدناه حسب نموذج اختبار المؤذنين السابق، والمحتوى مشترك مع مسار الإمام لأن المقرر واحد.</div>`:''}
     <a class="card exam-cta" href="#/${tid}/exam" style="text-decoration:none;color:inherit"><h2>الاختبار الفعلي</h2><span>${examCount(t)} سؤال اختيار من متعدد، تُسحب عشوائياً من بنك ${mcqTotal(t)} سؤال، بتوزيع الدرجات الحقيقي، والنتيجة من 100.${store.get('best:'+tid,null)!=null?' أفضل نتيجة لك: <b>'+store.get('best:'+tid)+'</b>':''}</span><span class="go" style="display:inline-block;background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;justify-self:start">ابدأ الاختبار</span></a>
     <a class="card paper-cta" href="#/${tid}/paper" style="text-decoration:none;color:inherit"><h2>ورقة اختبار كاملة (نظام الوزارة)</h2><span>ورقة مطابقة لنماذج الاختبارات السابقة: مجالات مرتبة، واختيار من متعدد، وصح وخطأ، وأكمل، وأسئلة مقالية. تُصحح آلياً مع تقييم ذاتي للمقالي، والنتيجة من 100.${store.get('bestPaper:'+tid,null)!=null?' أفضل نتيجة: <b>'+store.get('bestPaper:'+tid)+'</b>':''}</span><span class="go" style="display:inline-block;background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;justify-self:start">ابدأ الورقة</span></a>
@@ -220,7 +220,7 @@ function track(tid){
       ${Object.entries(t.marks).map(([sid,m])=>{const s=DATA.subjects[sid];const d=done[sid]||{};const known=Object.values(d).filter(x=>x==='y').length;return `<a class="subj" href="#/${tid}/${sid}">
         <span class="nm">${esc(s.name)}</span>
         <span class="mk"><b>${m==null?'؟':m}</b><span>${m==null?'درجة':'درجة'}</span></span>
-        <span class="src">${esc(s.source)}${t.notes[sid]?' · '+esc(t.notes[sid]):''} · ${s.questions.length||(s.mcq||[]).length} سؤال${known?` · أتقنت ${known}`:''}</span>
+        <span class="src">${esc(s.source)}${t.notes[sid]?' · '+esc(t.notes[sid]):''} · ${s.questions.length||poolMcq(t,sid).length} سؤال${known?` · أتقنت ${known}`:''}</span>
         ${m!=null?`<span class="bar"><i style="width:${Math.round(100*m/total)}%"></i></span>`:''}
       </a>`;}).join('')}
     </div>
@@ -242,12 +242,12 @@ function subject(tid,sid,mode){
   app.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{store.set('mode:'+sid,b.dataset.mode);subject(tid,sid,b.dataset.mode);});
   const pane=document.getElementById('pane');
   if(mode==='notes'){pane.innerHTML=`<div class="card notes">${mdToHtml(s.notes)}</div>`;}
-  else quiz(pane,sid,s);
+  else quiz(pane,sid,s,t);
 }
 
-function quiz(pane,sid,s){
+function quiz(pane,sid,s,tr){
   // عند عدم وجود أسئلة مقالية لهذه المادة، تُستخدم أسئلة الاختيار كبطاقات مراجعة
-  const qs=(s.questions&&s.questions.length)?s.questions:(s.mcq||[]).map(q=>({q:q.q,a:q.o[q.c]})); if(!qs.length){pane.innerHTML='<div class="empty">لا توجد أسئلة لهذه المادة بعد.</div>';return;}
+  const qs=(s.questions&&s.questions.length)?s.questions:poolMcq(tr,sid).map(q=>({q:q.q,a:q.o[q.c]})); if(!qs.length){pane.innerHTML='<div class="empty">لا توجد أسئلة لهذه المادة بعد.</div>';return;}
   const done=store.get('done',{}); done[sid]=done[sid]||{};
   let order=qs.map((_,i)=>i); let idx=store.get('idx:'+sid,0)%qs.length; let shown=false;
   function render(){
@@ -278,12 +278,12 @@ function quiz(pane,sid,s){
 
 
 function examCount(t){return Object.values(t.exam||{}).reduce((a,b)=>a+b,0);}
-function mcqTotal(t){return Object.keys(t.exam||{}).reduce((a,s)=>a+(DATA.subjects[s]?.mcq.length||0),0);}
+function mcqTotal(t){return Object.keys(t.exam||{}).reduce((a,s)=>a+poolMcq(t,s).length,0);}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function buildExam(t){
   const qs=[];
   for(const [sid,n] of Object.entries(t.exam||{})){
-    const pool=shuffle([...(DATA.subjects[sid]?.mcq||[])]).slice(0,n);
+    const pool=shuffle(poolMcq(t,sid)).slice(0,n);
     pool.forEach(q=>{const idx=shuffle(q.o.map((_,i)=>i));qs.push({s:sid,q:q.q,o:idx.map(i=>q.o[i]),c:idx.indexOf(q.c),pick:-1});});
   }
   return shuffle(qs);
@@ -320,7 +320,7 @@ function exam(tid){
     const wrong=qs.filter(q=>q.pick!==q.c);
     app.innerHTML=`<section class="hero" style="padding-block:20px 10px"><h1>النتيجة</h1></section>
     <div class="stack">
-      <div class="card"><div class="score">${pct}<small> من 100</small></div><div style="color:var(--muted)">${pct>=90?'ممتاز، هذا مستوى النجاح المطلوب.':pct>=75?'جيد، راجع الأخطاء أدناه وأعد الاختبار.':'تحتاج مراجعة مركزة، ابدأ بالمواد الأقل نتيجة.'} الوقت: ${fmt(Date.now()-start)}</div></div>
+      <div class="card"><div class="score">${pct}<small> من 100</small></div><div style="margin:6px 0"><span class="badge ${pct>=(t.pass||70)?'ok':'no'}">${pct>=(t.pass||70)?'ناجح':'راسب'} · درجة النجاح ${t.pass||70}</span></div><div style="color:var(--muted)">${pct>=90?'ممتاز، هذا مستوى التفوق.':pct>=(t.pass||70)?'اجتزت النجاح، وراجع الأخطاء لترفع درجتك.':'تحتاج مراجعة مركزة، ابدأ بالمواد الأقل نتيجة.'} الوقت: ${fmt(Date.now()-start)}</div></div>
       <div class="card notes"><div class="tbl"><table><tr><th>المادة</th><th>صحيح</th><th>من</th><th>الدرجة</th></tr>${rows.sort((a,b)=>b.w-a.w).map(x=>`<tr><td>${esc(DATA.subjects[x.s].name)}</td><td>${x.r.ok}</td><td>${x.r.n}</td><td>${x.got.toFixed(1)} / ${x.w.toFixed(0)}</td></tr>`).join('')}</table></div></div>
       <div class="row"><button class="btn primary" id="again">اختبار جديد بأسئلة أخرى</button><a class="btn" href="#/${tid}">العودة للمواد</a></div>
       <h2>مراجعة الأخطاء (${wrong.length})</h2>
@@ -336,12 +336,19 @@ function exam(tid){
 // ====== ورقة اختبار كاملة على نظام الاختبارات السابقة ======
 const SECT_ORDER=['tafsir','tajweed','hadith','aqeedah','fiqh','nahw','mithaq'];
 function pick(arr,n){return shuffle([...arr]).slice(0,n);}
+// تصفية أسئلة المادة على نطاق المقرر لهذا المسار
+function inScope(t,sid,q){
+  if(!q||!q.sc||q.sc==='core') return true;
+  const sc=t.scope||['ibadat','muamalat'];
+  return sc.includes(q.sc);
+}
+function poolMcq(t,sid){return (DATA.subjects[sid]?.mcq||[]).filter(q=>inScope(t,sid,q));}
 function buildPaper(t){
   const secs=[];
   const order=SECT_ORDER.filter(s=>t.paper&&t.paper[s]&&Object.values(t.paper[s]).some(v=>v>0));
   order.forEach(sid=>{
     const conf=t.paper[sid], sub=DATA.subjects[sid], items=[];
-    pick(sub.mcq||[],conf.mcq||0).forEach(q=>{const idx=shuffle(q.o.map((_,i)=>i));items.push({k:'mcq',q:q.q,o:idx.map(i=>q.o[i]),c:idx.indexOf(q.c),pick:-1});});
+    pick(poolMcq(t,sid),conf.mcq||0).forEach(q=>{const idx=shuffle(q.o.map((_,i)=>i));items.push({k:'mcq',q:q.q,o:idx.map(i=>q.o[i]),c:idx.indexOf(q.c),pick:-1});});
     pick(sub.tf||[],conf.tf||0).forEach(q=>items.push({k:'tf',q:q.q,t:q.t,pick:null}));
     pick(sub.fill||[],conf.fill||0).forEach(q=>items.push({k:'fill',q:q.q,a:q.a,val:'',self:null}));
     pick(sub.questions||[],conf.written||0).forEach(q=>items.push({k:'written',q:q.q,a:q.a,val:'',self:null}));
@@ -401,7 +408,7 @@ function paper(tid){
     const sc=graded?scoreNow():null;
     app.innerHTML=`<section class="hero" style="padding-block:18px 8px"><h1>ورقة اختبار ${esc(t.name)}</h1>
       <p>الزمن ${Math.round(limit/60000)} دقيقة. أجب عن جميع الأسئلة. الأسئلة المقالية تُقيَّم ذاتياً بعد ظهور الإجابة النموذجية.</p></section>
-      ${graded?`<div class="card" style="text-align:center"><div class="score">${sc.pct}<small> من 100</small></div><div style="color:var(--muted)">${sc.got.toFixed(1)} من ${sc.max.toFixed(0)} · الزمن المستغرق ${fmt(Date.now()-start)}</div></div>`:`<div class="sticky-sub"><div class="prog"><span>عدد الأسئلة <b>${total}</b></span><span class="timer" id="timer">المتبقي ${fmt(limit-(Date.now()-start))}</span></div></div>`}
+      ${graded?`<div class="card" style="text-align:center"><div class="score">${sc.pct}<small> من 100</small></div><div style="margin:6px 0"><span class="badge ${sc.pct>=(t.pass||70)?'ok':'no'}">${sc.pct>=(t.pass||70)?'ناجح':'راسب'} · درجة النجاح ${t.pass||70}</span></div><div style="color:var(--muted)">${sc.got.toFixed(1)} من ${sc.max.toFixed(0)} · الزمن المستغرق ${fmt(Date.now()-start)}</div></div>`:`<div class="sticky-sub"><div class="prog"><span>عدد الأسئلة <b>${total}</b></span><span class="timer" id="timer">المتبقي ${fmt(limit-(Date.now()-start))}</span></div></div>`}
       ${html}
       <div class="row" style="margin-top:20px">${graded?`<button class="btn primary" id="again">ورقة جديدة بأسئلة أخرى</button><a class="btn" href="#/${tid}">العودة للمواد</a>`:`<button class="btn primary" id="submit">تسليم الورقة وعرض النتيجة</button>`}</div>`;
     const all=secs.flatMap(s=>s.items);
