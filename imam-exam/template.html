@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>منصة تأهيل الأئمة والمؤذنين</title>
+<title>تدريبات الأئمة والمؤذنين</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&display=swap">
 <style>
 :root{
@@ -135,11 +135,11 @@ footer{margin-top:40px;color:var(--muted);font-size:.8rem}
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <a class="brand" href="#/">تأهيل الأئمة والمؤذنين<small>وزارة الأوقاف الكويتية، اختبار الوظائف الدينية</small></a>
+  <a class="brand" href="#/">تدريبات الأئمة والمؤذنين<small>منصة تدريب ذاتي، جهد شخصي غير رسمي</small></a>
   <nav class="crumbs" id="crumbs"></nav>
 </div></header>
 <main class="wrap" id="app"></main>
-<footer class="wrap">المحتوى مأخوذ من المقررات المعتمدة ونماذج الاختبارات السابقة. لا يُحفظ أي شيء خارج جهازك.</footer>
+<footer class="wrap"><b>إخلاء مسؤولية:</b> هذه منصة تدريب ذاتي أعدّها أفراد للمذاكرة والتمرين، وليست جهة رسمية ولا تتبع وزارة الأوقاف والشؤون الإسلامية ولا أي جهة حكومية، ولا تصدر عنها ولا تمثلها. الأسئلة هنا تمارين من إعدادنا للتدريب فقط، وليست أسئلة اختبار رسمية ولا تنبئ بأسئلة الاختبار. المرجع الملزم هو المقرر والإعلان الصادران عن الجهة المختصة. لا يُحفظ أي شيء خارج جهازك.</footer>
 <script id="data" type="application/json">/*__DATA__*/null</script>
 <script>
 const DATA = JSON.parse(document.getElementById('data').textContent);
@@ -196,7 +196,8 @@ function home(){
   crumbs.innerHTML='';
   app.innerHTML=`<section class="hero">
     <h1>اختر المسار الذي تتقدم له</h1>
-    <p>ملخصات المقررات المعتمدة، وبنك أسئلة من نماذج الاختبارات السابقة، مرتبة حسب وزن الدرجات. الاختبار التحريري في ${fmtDate(DATA.tracks.imam.exam_date)}.</p>
+    <p>ملخصات للمقررات المعلنة، وبنك تمارين من إعدادنا على نمط ما يُتداول من نماذج سابقة، مرتبة حسب وزن الدرجات المعلن. موعد الاختبار التحريري المعلن ${fmtDate(DATA.tracks.imam.exam_date)}.</p>
+    <div class="card" style="margin-top:14px"><span class="pill gold">تنبيه</span> موقع تدريب ذاتي غير رسمي، لا يتبع وزارة الأوقاف ولا أي جهة حكومية. كل ما فيه تمارين للمذاكرة، وليست أسئلة اختبار رسمية.</div>
     <div class="choices">
       ${Object.entries(DATA.tracks).map(([id,t])=>`<a class="choice" href="#/${id}"><span class="k">${esc(t.name)}</span><span class="d">${t.marks_pending?'توزيع الدرجات يُحدَّث عند وصول المقرر':Object.keys(t.marks).length+' مواد، مجموع '+Object.values(t.marks).reduce((a,b)=>a+(b||0),0)+' درجة'}</span><span class="go">ابدأ المذاكرة</span></a>`).join('')}
     </div></section>`;
@@ -213,8 +214,8 @@ function track(tid){
   <div class="stack">
     <div class="card count"><span class="n">${left>=0?left:0}</span><span class="l">${left>=0?'يوماً على الاختبار التحريري':'انتهى موعد الاختبار'} (${fmtDate(t.exam_date)}) · درجة النجاح <b>${t.pass||70}</b> من 100</span></div>
     ${t.marks_pending?`<div class="card"><span class="pill gold">تنبيه</span> توزيع درجات هذا المسار لم يصل بعد. المواد أدناه حسب نموذج اختبار المؤذنين السابق، والمحتوى مشترك مع مسار الإمام لأن المقرر واحد.</div>`:''}
-    <a class="card exam-cta" href="#/${tid}/exam" style="text-decoration:none;color:inherit"><h2>الاختبار الفعلي</h2><span>${examCount(t)} سؤال اختيار من متعدد، تُسحب عشوائياً من بنك ${mcqTotal(t)} سؤال، بتوزيع الدرجات الحقيقي، والنتيجة من 100.${store.get('best:'+tid,null)!=null?' أفضل نتيجة لك: <b>'+store.get('best:'+tid)+'</b>':''}</span><span class="go" style="display:inline-block;background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;justify-self:start">ابدأ الاختبار</span></a>
-    <a class="card paper-cta" href="#/${tid}/paper" style="text-decoration:none;color:inherit"><h2>ورقة اختبار كاملة (نظام الوزارة)</h2><span>ورقة مطابقة لنماذج الاختبارات السابقة: مجالات مرتبة، واختيار من متعدد، وصح وخطأ، وأكمل، وأسئلة مقالية. تُصحح آلياً مع تقييم ذاتي للمقالي، والنتيجة من 100.${store.get('bestPaper:'+tid,null)!=null?' أفضل نتيجة: <b>'+store.get('bestPaper:'+tid)+'</b>':''}</span><span class="go" style="display:inline-block;background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;justify-self:start">ابدأ الورقة</span></a>
+    <a class="card exam-cta" href="#/${tid}/exam" style="text-decoration:none;color:inherit"><h2>اختبار تدريبي شامل</h2><span>${examCount(t)} سؤال اختيار من متعدد، تُسحب عشوائياً من بنك ${mcqTotal(t)} سؤال، بحسب توزيع الدرجات المعلن، والنتيجة من 100.${store.get('best:'+tid,null)!=null?' أفضل نتيجة لك: <b>'+store.get('best:'+tid)+'</b>':''}</span><span class="go" style="display:inline-block;background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;justify-self:start">ابدأ الاختبار</span></a>
+    <a class="card paper-cta" href="#/${tid}/paper" style="text-decoration:none;color:inherit"><h2>ورقة تدريب كاملة</h2><span>ورقة تدريبية على نمط ما يُتداول من نماذج سابقة: مجالات مرتبة، واختيار من متعدد، وصح وخطأ، وأكمل، وأسئلة مقالية. تُصحح آلياً مع تقييم ذاتي للمقالي، والنتيجة من 100.${store.get('bestPaper:'+tid,null)!=null?' أفضل نتيجة: <b>'+store.get('bestPaper:'+tid)+'</b>':''}</span><span class="go" style="display:inline-block;background:var(--accent);color:var(--accent-ink);padding:8px 16px;border-radius:999px;font-weight:600;font-size:.9rem;justify-self:start">ابدأ الورقة</span></a>
     <h2>المواد حسب وزن الدرجات</h2>
     <div class="subjects">
       ${Object.entries(t.marks).map(([sid,m])=>{const s=DATA.subjects[sid];const d=done[sid]||{};const known=Object.values(d).filter(x=>x==='y').length;return `<a class="subj" href="#/${tid}/${sid}">
@@ -290,12 +291,12 @@ function buildExam(t){
 }
 function exam(tid){
   const t=DATA.tracks[tid]; if(!t||!t.exam) return home();
-  crumbs.innerHTML=`<a href="#/">الرئيسية</a> › <a href="#/${tid}">${esc(t.name)}</a> › <span>الاختبار الفعلي</span>`;
+  crumbs.innerHTML=`<a href="#/">الرئيسية</a> › <a href="#/${tid}">${esc(t.name)}</a> › <span>اختبار تدريبي</span>`;
   const qs=buildExam(t); let i=0; const start=Date.now(); const limit=examCount(t)*75*1000; let tick=null;
   function fmt(ms){ms=Math.max(0,ms);const m=Math.floor(ms/60000),s=Math.floor(ms%60000/1000);return `${m}:${String(s).padStart(2,'0')}`;}
   function render(){
     const q=qs[i]; const answered=qs.filter(x=>x.pick>=0).length;
-    app.innerHTML=`<section class="hero" style="padding-block:20px 10px"><h1>الاختبار الفعلي</h1></section>
+    app.innerHTML=`<section class="hero" style="padding-block:20px 10px"><h1>اختبار تدريبي شامل</h1></section>
     <div class="stack">
       <div class="prog"><span>السؤال <b>${i+1}</b> من <b>${qs.length}</b></span><span>أجبت <b>${answered}</b></span><span class="timer" id="timer">المتبقي ${fmt(limit-(Date.now()-start))}</span></div>
       <div class="pbar"><i style="width:${Math.round(100*answered/qs.length)}%"></i></div>
@@ -333,7 +334,7 @@ function exam(tid){
 }
 
 
-// ====== ورقة اختبار كاملة على نظام الاختبارات السابقة ======
+// ====== ورقة تدريب كاملة على نمط النماذج السابقة ======
 const SECT_ORDER=['tafsir','tajweed','hadith','aqeedah','fiqh','nahw','mithaq'];
 function pick(arr,n){return shuffle([...arr]).slice(0,n);}
 // تصفية أسئلة المادة على نطاق المقرر لهذا المسار
@@ -365,7 +366,7 @@ function isAnswered(it){
 }
 function paper(tid){
   const t=DATA.tracks[tid]; if(!t||!t.paper) return home();
-  crumbs.innerHTML=`<a href="#/">الرئيسية</a> › <a href="#/${tid}">${esc(t.name)}</a> › <span>ورقة اختبار</span>`;
+  crumbs.innerHTML=`<a href="#/">الرئيسية</a> › <a href="#/${tid}">${esc(t.name)}</a> › <span>ورقة تدريب</span>`;
   const secs=buildPaper(tid&&t); const start=Date.now(); const total=secs.reduce((a,s)=>a+s.items.length,0);
   const limit=total*120*1000; let tick=null; let graded=false;
   const AR=['أ','ب','ج','د'];
@@ -411,7 +412,7 @@ function paper(tid){
       return `<section class="sect"><h2>المجال ${['الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع'][si]}: ${esc(sc.name)} <span class="mk2">(${sc.w.toFixed(0)} درجة)</span></h2>${inner}</section>`;
     }).join('');
     const sc=graded?scoreNow():null;
-    app.innerHTML=`<section class="hero" style="padding-block:18px 8px"><h1>ورقة اختبار ${esc(t.name)}</h1>
+    app.innerHTML=`<section class="hero" style="padding-block:18px 8px"><h1>ورقة تدريب ${esc(t.name)}</h1>
       <p>الزمن ${Math.round(limit/60000)} دقيقة. أجب عن جميع الأسئلة. الأسئلة المقالية تُقيَّم ذاتياً بعد ظهور الإجابة النموذجية.</p></section>
       ${graded?`<div class="card" style="text-align:center"><div class="score">${sc.pct}<small> من 100</small></div><div style="margin:6px 0"><span class="badge ${sc.pct>=(t.pass||70)?'ok':'no'}">${sc.pct>=(t.pass||70)?'ناجح':'راسب'} · درجة النجاح ${t.pass||70}</span></div><div style="color:var(--muted)">${sc.got.toFixed(1)} من ${sc.max.toFixed(0)} · الزمن المستغرق ${fmt(Date.now()-start)}</div></div>`:`<div class="sticky-sub"><div class="prog"><span>عدد الأسئلة <b>${total}</b></span><span>أجبت <b>${secs.flatMap(s=>s.items).filter(isAnswered).length}</b></span><span>بقي <b>${total-secs.flatMap(s=>s.items).filter(isAnswered).length}</b></span><span class="timer" id="timer">المتبقي ${fmt(limit-(Date.now()-start))}</span></div><div class="pbar" style="margin-top:6px"><i style="width:${Math.round(100*secs.flatMap(s=>s.items).filter(isAnswered).length/total)}%"></i></div></div>`}
       ${html}
