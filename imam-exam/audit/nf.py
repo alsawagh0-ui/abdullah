@@ -13,7 +13,7 @@ SUBJ = {
     "hadith":  ("hadith_t",  "شرح ابن دقيق العيد على الأربعين"),
     "aqeedah": ("aqeedah_t", "بريق الجمان"),
     "mithaq":  ("mithaq_t",  "ميثاق المسجد"),
-    "tajweed": ("tajweed_t", "غاية المريد (الملخص المشجّر)"),
+    "tajweed": ("tajweed_t", "شرح غاية المريد للأستاذة إيمان أحمد الشيخ"),
 }
 KINDS = ("mcq", "tf", "fill", "questions")
 FIX_OK = {"mcq": {"q", "o", "c"}, "tf": {"q", "t"}, "fill": {"q", "a"}, "questions": {"q"}}
