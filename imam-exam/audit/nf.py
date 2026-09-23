@@ -28,11 +28,16 @@ def letters(t):
     return re.sub(r"[^ء-ي ]", "", re.sub(r"\s+", " ", t)).replace(" ", "")
 
 _pages = {}
+IMG = []   # شواهد مأخوذة من صورة الصفحة، تُعرض للمراجعة اليدوية
 def page(sid, p):
     key = (sid, p)
     if key not in _pages:
-        f = BOOKS / SUBJ[sid][0] / f"{p:03d}.txt"
-        _pages[key] = letters(f.read_text(encoding="utf-8")) if f.exists() else ""
+        # نسخة OCR ثانية بدقة أعلى (إن وُجدت) تُضمّ إلى الأولى لتقليل أخطاء القراءة
+        txt = ""
+        for d in (SUBJ[sid][0], SUBJ[sid][0] + "2"):
+            f = BOOKS / d / f"{p:03d}.txt"
+            if f.exists(): txt += " " + f.read_text(encoding="utf-8")
+        _pages[key] = letters(txt)
     return _pages[key]
 
 def found(sid, p, text):
@@ -88,6 +93,8 @@ def check(path):
         if not d.get("src"): bad.append(f"{tag}: لا src")
         for x in Q:
             if len(letters(x.get("t", ""))) < 12: bad.append(f"{tag}: شاهد قصير"); continue
+            if x.get("img"):   # قُرئ من صورة الصفحة لأن OCR فاسد في هذا السطر؛ يُراجَع يدوياً
+                IMG.append(f'{Path(path).name} {tag} ص {x.get("p")}: {x["t"]}'); continue
             s = found(sid, int(x.get("p", 0)), x["t"])
             if s < 80: bad.append(f'{tag}: الشاهد لم يوجد في ص {x.get("p")} (تطابق {s:.0f}): {x["t"][:60]}')
     miss = want - seen
@@ -126,4 +133,5 @@ if __name__ == "__main__":
             bad, n = check(p)
             print(f"{Path(p).name}: {n} قراراً، مشكلات {len(bad)}")
             for b in bad[:60]: print("  -", b)
+        for x in IMG: print("  [صورة]", x)
     elif cmd == "apply": apply()
