@@ -5,130 +5,219 @@
 :root{
   --bg:#F3F4F1; --surface:#FFFFFF; --ink:#16211C; --muted:#5A6660; --line:#DDE1DC;
   --accent:#145C49; --accent-ink:#FFFFFF; --soft:#E5EEEA; --bad:#A13A2C; --bad-soft:#F6E6E3;
+  --warn:#8A5A12; --warn-soft:#F5EDDD; --blue:#2A5B8C; --blue-soft:#E4ECF4;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){color-scheme:dark;
     --bg:#0F1412; --surface:#161D1A; --ink:#E6ECE8; --muted:#9AA69F; --line:#26302C;
-    --accent:#5CB496; --accent-ink:#0B1411; --soft:#1A2B25; --bad:#E48071; --bad-soft:#2B1B18;}
+    --accent:#5CB496; --accent-ink:#0B1411; --soft:#1A2B25; --bad:#E48071; --bad-soft:#2B1B18;
+    --warn:#D9A75A; --warn-soft:#2A2215; --blue:#7FAEDC; --blue-soft:#17222E;}
 }
 :root[data-theme="dark"]{color-scheme:dark;
   --bg:#0F1412; --surface:#161D1A; --ink:#E6ECE8; --muted:#9AA69F; --line:#26302C;
-  --accent:#5CB496; --accent-ink:#0B1411; --soft:#1A2B25; --bad:#E48071; --bad-soft:#2B1B18;}
+  --accent:#5CB496; --accent-ink:#0B1411; --soft:#1A2B25; --bad:#E48071; --bad-soft:#2B1B18;
+  --warn:#D9A75A; --warn-soft:#2A2215; --blue:#7FAEDC; --blue-soft:#17222E;}
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;direction:rtl;-webkit-font-smoothing:antialiased}
 .wrap{max-width:620px;margin:0 auto;padding-inline:16px;padding-block:18px 28px;min-height:100%;display:flex;flex-direction:column;gap:14px}
-button{font:inherit;cursor:pointer}
-button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button,textarea{font:inherit}
+button{cursor:pointer}
+button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .pick{flex:1;display:grid;align-content:center;gap:14px}
-.pick h1{margin:0 0 6px;font-size:1.5rem}
+.pick h1{margin:0;font-size:1.5rem}
+.pick .sub{margin:0 0 8px;color:var(--muted)}
 .pick button{padding:22px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:1.3rem;font-weight:700;text-align:right}
 .pick button:hover{border-color:var(--accent)}
+.home{flex:1;display:grid;align-content:center;gap:18px}
+.home h1{margin:0;font-size:1.4rem}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.stats div{display:grid;gap:2px;padding:14px 8px;text-align:center;border-inline-start:1px solid var(--line)}
+.stats div:first-child{border-inline-start:0}
+.stats b{font-size:1.6rem;font-variant-numeric:tabular-nums}
+.stats span{font-size:.8rem;color:var(--muted)}
+.c-new b{color:var(--blue)} .c-learn b{color:var(--bad)} .c-rev b{color:var(--accent)} .c-done b{color:var(--muted)}
+.big{padding:18px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-ink);font-size:1.25rem;font-weight:700}
+.link{border:0;background:none;color:var(--accent);font-weight:600;padding:4px 0}
+.note{margin:0;color:var(--muted);font-size:.9rem;line-height:1.8;text-align:center}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
-.bar b{color:var(--ink)}
-.bar .sw{border:0;background:none;color:var(--accent);font-weight:600;padding:4px 0}
-.prog{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
-.prog i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.bar .cnt{display:flex;gap:10px}
+.bar .cnt b{font-weight:700}
 .card{flex:1;display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 20px}
-.tag{align-self:flex-start;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:5px;background:var(--soft);color:var(--accent)}
 .tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:5px;background:var(--soft);color:var(--accent)}
 .tag.plain{background:transparent;border:1px solid var(--line);color:var(--muted)}
-.mn{margin-top:10px;padding:8px 10px;border-radius:8px;background:var(--soft);color:var(--accent);font-weight:600;font-size:.95rem}
-.fix{margin-top:10px;padding:8px 10px;border-radius:8px;background:var(--bad-soft);font-size:.9rem;line-height:1.8}
-.fix b{color:var(--bad)}
-.fix span{color:var(--muted)}
-.pick .sub{margin:0 0 8px;color:var(--muted)}
-.tag.again{background:var(--bad-soft);color:var(--bad)}
+.tag.s0{background:var(--warn-soft);color:var(--warn)} .tag.s1,.tag.s2,.tag.s3{background:var(--bad-soft);color:var(--bad)}
+.tag.new{background:var(--blue-soft);color:var(--blue)}
 .q{font-size:1.28rem;font-weight:700;line-height:1.7;margin:0;text-wrap:pretty}
 .a{border-top:1px solid var(--line);padding-top:14px;font-family:"Noto Naskh Arabic",serif;font-size:1.18rem;line-height:2;white-space:pre-line}
-.x{font-size:.95rem;color:var(--muted);line-height:1.9;margin-top:6px}
-.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}
-.acts button{padding:16px;border-radius:10px;font-size:1.1rem;font-weight:700;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
-.acts .show{grid-column:1/-1;background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.acts .no{color:var(--bad);border-color:var(--bad)}
-.acts .yes{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.done{flex:1;display:grid;align-content:center;gap:10px;text-align:center}
-.done h2{margin:0;font-size:1.4rem}
-.done p{margin:0;color:var(--muted);line-height:1.8}
-.done button{justify-self:center;padding:12px 22px;border-radius:10px;border:1px solid var(--accent);background:var(--surface);color:var(--accent);font-weight:700}
-@media (prefers-reduced-motion:reduce){.prog i{transition:none}}
+.ex{padding:12px 14px;border-radius:10px;background:var(--warn-soft);line-height:1.9}
+.ex b{color:var(--warn)}
+.mn{padding:8px 10px;border-radius:8px;background:var(--soft);color:var(--accent);font-weight:600;font-size:.95rem}
+.x{font-size:.9rem;color:var(--muted);line-height:1.8}
+.opts{display:grid;gap:8px}
+.opt{text-align:right;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);line-height:1.8}
+.opt.right{border-color:var(--accent);background:var(--soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);line-height:1.8;resize:vertical}
+.score{font-weight:700}
+.acts{display:grid;gap:8px;margin-top:auto}
+.acts.two{grid-template-columns:1fr 1fr}
+.acts.four{grid-template-columns:repeat(4,1fr)}
+.acts button{padding:12px 6px;border-radius:10px;font-weight:700;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;gap:2px}
+.acts button small{font-weight:400;font-size:.72rem;color:var(--muted)}
+.acts .main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-size:1.1rem;padding:15px}
+.acts .again{color:var(--bad);border-color:var(--bad)}
+.acts .hard{color:var(--warn);border-color:var(--warn)}
+.acts .good{color:var(--accent);border-color:var(--accent)}
+.acts .easy{color:var(--blue);border-color:var(--blue)}
+@media (max-width:380px){.acts.four{grid-template-columns:1fr 1fr}}
 </style>
 
 <div class="wrap" id="app"></div>
 
 <script>
 const CARDS=/*CARDS*/[];
-const EXAM=new Date('2026-10-06T00:00:00+03:00').getTime(), DAY=864e5, GAPS=[1,2,4];
+const EXAM=new Date('2026-10-06T00:00:00+03:00').getTime(), MIN=6e4, DAY=864e5;
+const STEPS=['اشرح','اختر','من حفظك','اكتبها'];
 const S={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
 const app=document.getElementById('app');
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const today=()=>new Date().toISOString().slice(0,10);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const fmt=ms=>ms<DAY?(ms<60*MIN?'بعد قليل':'اليوم'):(()=>{const d=Math.round(ms/DAY);return d===1?'يوم':d===2?'يومين':d+' أيام';})();
+
+let tr=S.get('track',null), st={}, deck=[], sessionStart=0;
+const key=()=> 'anki:'+tr;
+const save=()=>S.set(key(),st);
 
 function pick(){
-  app.innerHTML=`<div class="pick"><h1>بطاقات الفقه</h1><p class="sub">أسئلة دورة الشيخ عبدالسلام الفيلكاوي، مطابقة على دليل الطالب</p>
+  app.innerHTML=`<div class="pick"><h1>بطاقات الفقه</h1><p class="sub">أسئلة دورة الشيخ عبدالسلام الفيلكاوي</p>
     <button id="t-imam">إمام</button><button id="t-muadhin">مؤذن</button></div>`;
-  app.querySelector('#t-imam').onclick=()=>{S.set('track','imam');run();};
-  app.querySelector('#t-muadhin').onclick=()=>{S.set('track','muadhin');run();};
+  app.querySelector('#t-imam').onclick=()=>{tr='imam';S.set('track',tr);load();};
+  app.querySelector('#t-muadhin').onclick=()=>{tr='muadhin';S.set('track',tr);load();};
 }
+function load(){ if(!tr) return pick(); deck=CARDS.filter(c=>tr==='imam'||!c.m); st=S.get(key(),{}); home(); }
 
-function run(){
-  const tr=S.get('track',null); if(!tr) return pick();
-  const deck=CARDS.filter(c=>tr==='imam'||!c.m);
-  const key='st:'+tr, st=S.get(key,{});
-  const daysLeft=Math.max(1,Math.ceil((EXAM-Date.now())/DAY)-1), learnDays=Math.max(1,daysLeft-3);
-  // حصة اليوم من الجديد: ما بقي مقسوماً على الأيام الباقية (تُحسب مرة في اليوم)
-  let day=S.get('day:'+tr,{});
-  if(day.d!==today()){
-    const unseen=deck.filter(c=>!st[c.id]).length;
-    day={d:today(),quota:Math.ceil(unseen/learnDays),newDone:0,revDone:0};
-    S.set('day:'+tr,day);
-  }
+// حالة البطاقة: t = l (تتعلمها: step 0..3) | r (مراجعة: iv بالأيام، ease) — غير موجودة = جديدة
+function counts(){
+  const now=Date.now(); let n=0,l=0,r=0,d=0;
+  for(const c of deck){const s=st[c.id]; if(!s) n++; else if(s.t==='l') l++; else if(s.due<=now) r++; else d++;}
+  return {n,l,r,d};
+}
+function home(){
+  const k=counts(), left=Math.max(0,Math.ceil((EXAM-Date.now())/DAY));
+  app.innerHTML=`<div class="home"><h1>بطاقات الفقه · ${tr==='imam'?'إمام':'مؤذن'}</h1>
+    <div class="stats"><div class="c-new"><b>${k.n}</b><span>جديدة</span></div><div class="c-learn"><b>${k.l}</b><span>تتعلمها</span></div>
+      <div class="c-rev"><b>${k.r}</b><span>مراجعة اليوم</span></div><div class="c-done"><b>${k.d}</b><span>مؤجلة</span></div></div>
+    <button class="big" id="go">${k.l+k.r+k.n?'ابدأ':'لا شيء الآن'}</button>
+    <p class="note">باقي ${left} يوم على الاختبار. اختبر نفسك قدر ما تبي: اللي ما تعرفه يمر بالشرح ثم الاختيار ثم الحفظ ثم الكتابة، واللي تعرفه يتأجل.</p>
+    <button class="link" id="sw">تغيير المسار</button></div>`;
+  app.querySelector('#go').onclick=()=>{sessionStart=Date.now();next();};
+  app.querySelector('#sw').onclick=()=>{tr=null;S.set('track',null);pick();};
+}
+// الترتيب: ما يتعلمه (حان وقته) ← المراجعة المستحقة ← الجديد
+function queue(){
   const now=Date.now();
-  const due=deck.filter(c=>st[c.id]&&st[c.id].due<=now);
-  const fresh=deck.filter(c=>!st[c.id]).slice(0,Math.max(0,day.quota-day.newDone));
-  let q=[...due,...fresh];
-  const known=deck.filter(c=>st[c.id]&&st[c.id].box>=1).length;
-
-  function head(){
-    const got=day.newDone+day.revDone;
-    return `<div class="bar"><span>اليوم <b>${got}</b> / ${got+q.length} · باقي ${daysLeft} يوم</span><span>ثبّتّ <b>${known}</b> / ${deck.length}</span><button class="sw" id="sw">${tr==='imam'?'إمام':'مؤذن'} ↺</button></div>
-      <div class="prog"><i style="width:${Math.round(100*known/deck.length)}%"></i></div>`;
-  }
-  function bind(){const b=app.querySelector('#sw'); if(b) b.onclick=()=>{S.set('track',null);pick();};}
-
-  function show(){
-    if(!q.length){
-      app.innerHTML=head()+`<div class="done"><h2>خلّصت بطاقات اليوم</h2>
-        <p>ثبّتّ ${known} من ${deck.length}. ارجع بكرة، البطاقات اللي حان وقتها بتنتظرك.</p>
-        <button id="more">زيدني ${Math.min(20,deck.filter(c=>!st[c.id]).length)} بطاقة جديدة</button></div>`;
-      bind();
-      const m=app.querySelector('#more'); if(m) m.onclick=()=>{day.quota+=20;S.set('day:'+tr,day);run();};
-      return;
-    }
-    const c=q[0], s=st[c.id];
-    app.innerHTML=head()+`<article class="card">
-      <div class="tags"><span class="tag plain">${esc(c.b)}</span>${s?(s.box===0?'<span class="tag again">غلطت فيها قبل</span>':'<span class="tag">مراجعة</span>'):''}</div>
-      <p class="q">${esc(c.q)}</p>
-      <div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.mn?`<div class="mn">للحفظ: ${esc(c.mn)}</div>`:''}${c.n?`<div class="x">${esc(c.n)}</div>`:''}</div>
-      <div class="acts" id="acts"><button class="show" id="show">اكشف الجواب</button></div>
-    </article>`;
-    bind();
-    app.querySelector('#show').onclick=()=>{
-      app.querySelector('#ans').hidden=false;
-      app.querySelector('#acts').innerHTML=`<button class="no" id="no">غلطت</button><button class="yes" id="yes">عرفته</button>`;
-      app.querySelector('#no').onclick=()=>grade(false);
-      app.querySelector('#yes').onclick=()=>grade(true);
-    };
-  }
-  function grade(ok){
-    const c=q.shift(), s=st[c.id]||{box:-1}, wasNew=!st[c.id];
-    if(ok){ s.box=Math.min(s.box+1,GAPS.length-1); s.due=Math.min(Date.now()+GAPS[s.box]*DAY, EXAM-DAY); }
-    else { s.box=0; s.due=Date.now(); q.splice(Math.min(3,q.length),0,c); }
-    st[c.id]=s; S.set(key,st);
-    if(ok||wasNew){ if(wasNew) day.newDone++; else day.revDone++; S.set('day:'+tr,day); }
-    show();
-  }
-  show();
+  const L=deck.filter(c=>st[c.id]?.t==='l'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
+  const R=deck.filter(c=>st[c.id]?.t==='r'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
+  const N=deck.filter(c=>!st[c.id]);
+  return [...L,...R,...N];
 }
-run();
+function bar(){
+  const k=counts(), m=Math.floor((Date.now()-sessionStart)/MIN);
+  return `<div class="bar"><span class="cnt"><b style="color:var(--blue)">${k.n}</b><b style="color:var(--bad)">${k.l}</b><b style="color:var(--accent)">${k.r}</b></span><span>${m} دقيقة</span><button class="link" id="home">إنهاء</button></div>`;
+}
+function frame(c,tag,body){
+  app.innerHTML=bar()+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span>${tag}</div>${body}</article>`;
+  app.querySelector('#home').onclick=home;
+}
+function next(){
+  const q=queue();
+  if(!q.length){
+    // لا شيء مستحق الآن؛ إن بقيت بطاقات تتعلمها بعد دقائق نعرض أقربها
+    const soon=deck.filter(c=>st[c.id]?.t==='l').sort((a,b)=>st[a.id].due-st[b.id].due)[0];
+    if(soon) return show(soon);
+    return home();
+  }
+  show(q[0]);
+}
+function show(c){
+  const s=st[c.id];
+  if(!s) return flip(c,'<span class="tag new">جديدة</span>');
+  if(s.t==='r') return flip(c,'<span class="tag">مراجعة</span>');
+  [explain,mcq,recall,write][s.step](c);
+}
+// ضع البطاقة في مرحلة تعلّم، وتعود بعد دقائق (بعد بطاقات أخرى)
+function learn(c,step,delay){ st[c.id]={t:'l',step,due:Date.now()+(delay??2*MIN),lapses:(st[c.id]?.lapses||0)}; save(); }
+function graduate(c,iv){ const s=st[c.id]||{}; st[c.id]={t:'r',iv,ease:s.ease||2.5,due:Math.min(Date.now()+iv*DAY,EXAM-DAY/2),reps:(s.reps||0)+1}; save(); }
+
+// بطاقة جديدة أو مراجعة: السؤال ← الجواب ← أزرار Anki
+function flip(c,tag){
+  frame(c,tag,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.n?`<div class="x">${esc(c.n)}</div>`:''}</div>
+    <div class="acts" id="acts"><button class="main" id="show">اكشف الجواب</button></div>`);
+  app.querySelector('#show').onclick=()=>{
+    app.querySelector('#ans').hidden=false;
+    const s=st[c.id], iv=s?.iv||0, ease=s?.ease||2.5;
+    const hard=s?Math.max(1,Math.round(iv*1.2)):1, good=s?Math.max(iv+1,Math.round(iv*ease)):1, easy=s?Math.max(good+1,Math.round(iv*ease*1.3)):3;
+    app.querySelector('#acts').className='acts four';
+    app.querySelector('#acts').innerHTML=`<button class="again" id="b0">ما عرفتها<small>أتعلّمها</small></button>
+      <button class="hard" id="b1">صعبة<small>${fmt(hard*DAY)}</small></button>
+      <button class="good" id="b2">عرفتها<small>${fmt(good*DAY)}</small></button>
+      <button class="easy" id="b3">سهلة<small>${fmt(easy*DAY)}</small></button>`;
+    app.querySelector('#b0').onclick=()=>{learn(c,0,0);next();};
+    app.querySelector('#b1').onclick=()=>{graduate(c,hard);st[c.id].ease=Math.max(1.3,ease-.15);save();next();};
+    app.querySelector('#b2').onclick=()=>{graduate(c,good);next();};
+    app.querySelector('#b3').onclick=()=>{graduate(c,easy);st[c.id].ease=ease+.15;save();next();};
+  };
+}
+const stepTag=i=>`<span class="tag s${i}">${i+1}/4 · ${STEPS[i]}</span>`;
+// ١) الشرح
+function explain(c){
+  frame(c,stepTag(0),`<p class="q">${esc(c.q)}</p><div class="a">${esc(c.a)}</div>
+    ${c.ex?`<div class="ex"><b>الشرح: </b>${esc(c.ex)}</div>`:''}${c.mn?`<div class="mn">للحفظ: ${esc(c.mn)}</div>`:''}${c.n?`<div class="x">${esc(c.n)}</div>`:''}
+    <div class="acts"><button class="main" id="ok">فهمتها</button></div>`);
+  app.querySelector('#ok').onclick=()=>{learn(c,1);next();};
+}
+// ٢) اختيار من متعدد
+function mcq(c){
+  if(!c.w||c.w.length<3){learn(c,2,0);return next();}
+  const right=c.ca||c.a, opts=shuffle([right,...c.w]);
+  frame(c,stepTag(1),`<p class="q">${esc(c.q)}</p><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><div class="acts" id="acts"></div>`);
+  app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const ok=opts[+b.dataset.i]===right;
+    app.querySelectorAll('.opt').forEach(x=>{x.disabled=true; if(opts[+x.dataset.i]===right) x.classList.add('right');});
+    if(!ok) b.classList.add('wrong');
+    app.querySelector('#acts').innerHTML=`<button class="main" id="nx">${ok?'صح، التالي':'راجع الشرح مرة ثانية'}</button>`;
+    app.querySelector('#nx').onclick=()=>{ ok?learn(c,2):learn(c,0,MIN); next(); };
+  });
+}
+// ٣) من حفظك
+function recall(c){
+  frame(c,stepTag(2),`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div>
+    <div class="acts" id="acts"><button class="main" id="show">جاوب في راسك ثم اكشف</button></div>`);
+  app.querySelector('#show').onclick=()=>{
+    app.querySelector('#ans').hidden=false;
+    const a=app.querySelector('#acts'); a.className='acts two';
+    a.innerHTML=`<button class="again" id="no">ما عرفتها</button><button class="good" id="yes">عرفتها</button>`;
+    a.querySelector('#no').onclick=()=>{learn(c,1,MIN);next();};
+    a.querySelector('#yes').onclick=()=>{learn(c,3);next();};
+  };
+}
+// ٤) اكتبها
+const words=t=>String(t).replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').split(/[^ء-ي0-9]+/).filter(w=>w.length>2);
+function write(c){
+  frame(c,stepTag(3),`<p class="q">${esc(c.q)}</p><label for="w-${c.id}" class="x">اكتب الجواب من حفظك:</label><textarea id="w-${c.id}"></textarea>
+    <div id="ans" hidden></div><div class="acts" id="acts"><button class="main" id="cmp">قارن بالجواب</button></div>`);
+  app.querySelector('#cmp').onclick=()=>{
+    const mine=new Set(words(app.querySelector('textarea').value)), need=[...new Set(words(c.a))];
+    const hit=need.filter(w=>mine.has(w)).length, pct=need.length?Math.round(100*hit/need.length):0;
+    const box=app.querySelector('#ans'); box.hidden=false;
+    box.innerHTML=`<div class="a">${esc(c.a)}</div><p class="score">كلماتك طابقت ${pct}% من كلمات الجواب</p>`;
+    const a=app.querySelector('#acts'); a.className='acts two';
+    a.innerHTML=`<button class="again" id="no">ما كتبتها صح</button><button class="good" id="yes">كتبتها صح</button>`;
+    a.querySelector('#no').onclick=()=>{learn(c,2,MIN);next();};
+    a.querySelector('#yes').onclick=()=>{graduate(c,1);next();};
+  };
+}
+load();
 </script>
