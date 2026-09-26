@@ -109,7 +109,7 @@ function run(){
     app.innerHTML=head()+`<article class="card">
       <div class="tags"><span class="tag plain">${esc(c.b)}</span>${s?(s.box===0?'<span class="tag again">غلطت فيها قبل</span>':'<span class="tag">مراجعة</span>'):''}</div>
       <p class="q">${esc(c.q)}</p>
-      <div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.mn?`<div class="mn">للحفظ: ${esc(c.mn)}</div>`:''}${c.st==='fix'?`<div class="fix"><b>صُحّح من دليل الطالب${c.p?' (ص '+c.p+')':''}:</b> ${esc(c.w)}<br><span>جواب الدورة كان: ${esc(c.o)}</span></div>`:''}${c.st==='nb'?`<div class="fix nb"><b>غير مذكور في دليل الطالب</b>، وهذا جواب الدورة: ${esc(c.w||'')}</div>`:''}${c.n?`<div class="x">${esc(c.n)}</div>`:''}</div>
+      <div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.mn?`<div class="mn">للحفظ: ${esc(c.mn)}</div>`:''}${c.n?`<div class="x">${esc(c.n)}</div>`:''}</div>
       <div class="acts" id="acts"><button class="show" id="show">اكشف الجواب</button></div>
     </article>`;
     bind();
