@@ -41,6 +41,8 @@ def rank(c):
     return len(ORDER)
 cards = sorted(enumerate(cards), key=lambda ic: (rank(ic[1]), ic[0]))
 cards = [c for _, c in cards]
+for c in cards:
+    if c["b"] == "الصيد": c["b"] = "الصيد والذبائح"
 tpl = (D / "template.html").read_text(encoding="utf-8")
 out = tpl.replace("/*CARDS*/[]", json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 (D / "index.html").write_text(out, encoding="utf-8")
