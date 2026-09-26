@@ -31,6 +31,13 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .prog i{display:block;height:100%;background:var(--accent);transition:width .3s}
 .card{flex:1;display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px 20px}
 .tag{align-self:flex-start;font-size:.75rem;font-weight:600;padding:2px 8px;border-radius:5px;background:var(--soft);color:var(--accent)}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag.plain{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.mn{margin-top:10px;padding:8px 10px;border-radius:8px;background:var(--soft);color:var(--accent);font-weight:600;font-size:.95rem}
+.fix{margin-top:10px;padding:8px 10px;border-radius:8px;background:var(--bad-soft);font-size:.9rem;line-height:1.8}
+.fix b{color:var(--bad)}
+.fix span{color:var(--muted)}
+.pick .sub{margin:0 0 8px;color:var(--muted)}
 .tag.again{background:var(--bad-soft);color:var(--bad)}
 .q{font-size:1.28rem;font-weight:700;line-height:1.7;margin:0;text-wrap:pretty}
 .a{border-top:1px solid var(--line);padding-top:14px;font-family:"Noto Naskh Arabic",serif;font-size:1.18rem;line-height:2;white-space:pre-line}
@@ -58,7 +65,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const today=()=>new Date().toISOString().slice(0,10);
 
 function pick(){
-  app.innerHTML=`<div class="pick"><h1>بطاقات الفقه</h1>
+  app.innerHTML=`<div class="pick"><h1>بطاقات الفقه</h1><p class="sub">أسئلة دورة الشيخ عبدالسلام الفيلكاوي، مطابقة على دليل الطالب</p>
     <button id="t-imam">إمام</button><button id="t-muadhin">مؤذن</button></div>`;
   app.querySelector('#t-imam').onclick=()=>{S.set('track','imam');run();};
   app.querySelector('#t-muadhin').onclick=()=>{S.set('track','muadhin');run();};
@@ -68,12 +75,12 @@ function run(){
   const tr=S.get('track',null); if(!tr) return pick();
   const deck=CARDS.filter(c=>tr==='imam'||!c.m);
   const key='st:'+tr, st=S.get(key,{});
-  const daysLeft=Math.max(1,Math.ceil((EXAM-Date.now())/DAY)-1);
+  const daysLeft=Math.max(1,Math.ceil((EXAM-Date.now())/DAY)-1), learnDays=Math.max(1,daysLeft-3);
   // حصة اليوم من الجديد: ما بقي مقسوماً على الأيام الباقية (تُحسب مرة في اليوم)
   let day=S.get('day:'+tr,{});
   if(day.d!==today()){
     const unseen=deck.filter(c=>!st[c.id]).length;
-    day={d:today(),quota:Math.ceil(unseen/daysLeft),newDone:0,revDone:0};
+    day={d:today(),quota:Math.ceil(unseen/learnDays),newDone:0,revDone:0};
     S.set('day:'+tr,day);
   }
   const now=Date.now();
@@ -100,9 +107,9 @@ function run(){
     }
     const c=q[0], s=st[c.id];
     app.innerHTML=head()+`<article class="card">
-      ${s?(s.box===0?'<span class="tag again">غلطت فيها قبل</span>':'<span class="tag">مراجعة</span>'):(c.d?'<span class="tag">في مفيد الصاحب</span>':'')}
+      <div class="tags"><span class="tag plain">${esc(c.b)}</span>${s?(s.box===0?'<span class="tag again">غلطت فيها قبل</span>':'<span class="tag">مراجعة</span>'):''}</div>
       <p class="q">${esc(c.q)}</p>
-      <div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.x?`<div class="x">${esc(c.x)}</div>`:''}</div>
+      <div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.mn?`<div class="mn">للحفظ: ${esc(c.mn)}</div>`:''}${c.st==='fix'?`<div class="fix"><b>صُحّح من دليل الطالب${c.p?' (ص '+c.p+')':''}:</b> ${esc(c.w)}<br><span>جواب الدورة كان: ${esc(c.o)}</span></div>`:''}${c.st==='nb'?`<div class="fix nb"><b>غير مذكور في دليل الطالب</b>، وهذا جواب الدورة: ${esc(c.w||'')}</div>`:''}${c.n?`<div class="x">${esc(c.n)}</div>`:''}</div>
       <div class="acts" id="acts"><button class="show" id="show">اكشف الجواب</button></div>
     </article>`;
     bind();
