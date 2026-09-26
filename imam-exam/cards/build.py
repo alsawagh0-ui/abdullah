@@ -16,6 +16,31 @@ for c in json.loads((SH / "cards.json").read_text(encoding="utf-8")):
         if len(e.get("wrong", [])) >= 3: c["w"] = e["wrong"][:3]
         if e.get("ca"): c["ca"] = e["ca"]
     cards.append(c)
+# أسئلة مستخرجة من تسجيل الدورة كاملاً (sheikh/video/final_*.json): نضيف غير المكرر فقط
+V = SH / "video"
+def secs(t):
+    p = [int(x) for x in str(t).split(":")]
+    while len(p) < 3: p = [0] + p
+    return p[0] * 3600 + p[1] * 60 + p[2]
+seen = set()
+for f in sorted(V.glob("final_[0-9].json")):
+    for x in json.loads(f.read_text(encoding="utf-8")):
+        if x.get("dup") or not x.get("a") or not x.get("q"): continue
+        cid = "v%d" % secs(x.get("t", "0:0:0"))
+        while cid in seen: cid += "b"
+        seen.add(cid)
+        c = {"id": cid, "b": x.get("b", ""), "q": x["q"], "a": x["a"], "m": int(x.get("m", 0))}
+        for k in ("ex", "ca", "mn", "n"):
+            if x.get(k): c[k] = x[k]
+        if len(x.get("w", [])) >= 3: c["w"] = x["w"][:3]
+        cards.append(c)
+ORDER = ["الطهارة", "الصلاة", "الجنائز", "الزكاة", "الصيام", "الحج", "البيوع", "النكاح", "الطلاق", "العدة", "الرضاع", "النفقات", "الأطعمة", "الصيد", "الذبائح", "الأيمان"]
+def rank(c):
+    for i, k in enumerate(ORDER):
+        if k in c["b"]: return i
+    return len(ORDER)
+cards = sorted(enumerate(cards), key=lambda ic: (rank(ic[1]), ic[0]))
+cards = [c for _, c in cards]
 tpl = (D / "template.html").read_text(encoding="utf-8")
 out = tpl.replace("/*CARDS*/[]", json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 (D / "index.html").write_text(out, encoding="utf-8")
