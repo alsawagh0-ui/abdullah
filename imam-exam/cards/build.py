@@ -8,7 +8,11 @@ ex = {}
 for f in sorted(SH.glob("ex_[0-9].json")):
     for e in json.loads(f.read_text(encoding="utf-8")): ex[e["id"]] = e
 cards = []
+# خارج المقرر (غير مذكورة في دليل الطالب): لا تدخل البطاقات
+OUT = {"s98", "s99", "s110", "s114"}
 for c in json.loads((SH / "cards.json").read_text(encoding="utf-8")):
+    if c["id"] in OUT: continue
+    if c["id"] == "s107": c.pop("n", None)   # التحويل للغرامات ليس من الكتاب
     c = {k: v for k, v in c.items() if k not in ("o", "w", "st", "p")}   # لا يظهر للطالب جواب الدورة الأصلي ولا سبب التصحيح
     e = ex.get(c["id"])
     if e:
@@ -25,12 +29,12 @@ def secs(t):
 seen = set()
 for f in sorted(V.glob("final_[0-9].json")):
     for x in json.loads(f.read_text(encoding="utf-8")):
-        if x.get("dup") or not x.get("a") or not x.get("q"): continue
+        if x.get("dup") or not x.get("a") or not x.get("q") or not x.get("p"): continue   # p=0: ليست في دليل الطالب
         cid = "v%d" % secs(x.get("t", "0:0:0"))
         while cid in seen: cid += "b"
         seen.add(cid)
         c = {"id": cid, "b": x.get("b", ""), "q": x["q"], "a": x["a"], "m": int(x.get("m", 0))}
-        for k in ("ex", "ca", "mn", "n"):
+        for k in ("ex", "ca", "mn"):   # الملاحظات (n) من خارج الكتاب فلا تُعرض
             if x.get(k): c[k] = x[k]
         if len(x.get("w", [])) >= 3: c["w"] = x["w"][:3]
         cards.append(c)
