@@ -1,0 +1,19 @@
+retry 0 {
+  "error": {
+    "code": 503,
+    "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+    "status": "UNAVAILABLE"
+  }
+}
+
+retry 1 {
+  "error": {
+    "code": 503,
+    "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+    "status": "UNAVAILABLE"
+  }
+}
+
+1 0 630 13
+2 600 1230 13
+3 1200 1830 16
