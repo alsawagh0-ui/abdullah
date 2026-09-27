@@ -71,6 +71,13 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 .acts .hard{color:var(--warn);border-color:var(--warn)}
 .acts .good{color:var(--accent);border-color:var(--accent)}
 .acts .easy{color:var(--blue);border-color:var(--blue)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:.88rem;display:inline-flex;gap:6px;align-items:baseline}
+.chips button small{color:var(--muted);font-variant-numeric:tabular-nums}
+.chips button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chips button.on small{color:var(--accent-ink);opacity:.8}
+.lbl{margin:0;font-size:.85rem;font-weight:600;color:var(--muted)}
+.sync{margin:0;font-size:.78rem;color:var(--muted);text-align:center}
 @media (max-width:380px){.acts.four{grid-template-columns:1fr 1fr}}
 </style>
 
@@ -88,7 +95,31 @@ const fmt=ms=>ms<DAY?(ms<60*MIN?'بعد قليل':'اليوم'):(()=>{const d=Ma
 
 let tr=S.get('track',null), st={}, deck=[], sessionStart=0;
 const key=()=> 'anki:'+tr;
-const save=()=>S.set(key(),st);
+const save=()=>{S.set(key(),st);push();};
+// المزامنة مع حسابك (تبقى محفوظة حتى لو انمسح المتصفح أو فتحت من جهاز ثاني)
+let rdoc=null, rtr=null, rbusy=false, rdirty=false, rtimer=0, synced=false;
+async function syncInit(){
+  try{
+    if(!window.claude||!claude.use||!tr) return;
+    const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);
+    if(!db||!user) return; const uid=await user.id(); if(!uid) return;
+    rtr=tr; rdoc=db.doc('data/users/'+uid+'/anki-'+tr);
+    const snap=await rdoc.get(), remote=(snap.exists&&snap.data()?.st)||{};
+    let changed=false, needPush=false;
+    for(const [id,r] of Object.entries(remote)){ const l=st[id]; if(!l||(r.u||0)>(l.u||0)){st[id]=r;changed=true;} }
+    for(const [id,l] of Object.entries(st)){ const r=remote[id]; if(!r||(l.u||0)>(r.u||0)) needPush=true; }
+    synced=snap.exists; S.set(key(),st);
+    if(needPush||!snap.exists) push(true);
+    if(changed&&app.querySelector('.home')) home(); else { const e=app.querySelector('.sync'); if(e) e.textContent=syncTxt(); }
+  }catch(e){}
+}
+function push(now){
+  if(!rdoc||rtr!==tr) return; rdirty=true; clearTimeout(rtimer);
+  rtimer=setTimeout(async()=>{ if(rbusy) return; rbusy=true;
+    while(rdirty){ rdirty=false; try{ await rdoc.set({st:JSON.parse(JSON.stringify(st))}); if(!synced){synced=true; const e=app.querySelector('.sync'); if(e) e.textContent=syncTxt();} }catch(e){ rdoc=null; synced=false; break; } }
+    rbusy=false; }, now?0:1500);
+}
+const syncTxt=()=>synced?'تقدمك محفوظ في حسابك ✓':'تقدمك محفوظ على هذا الجهاز';
 
 function pick(){
   app.innerHTML=`<div class="pick"><h1>بطاقات الفقه</h1><p class="sub">أسئلة دورة الشيخ عبدالسلام الفيلكاوي</p>
@@ -96,12 +127,16 @@ function pick(){
   app.querySelector('#t-imam').onclick=()=>{tr='imam';S.set('track',tr);load();};
   app.querySelector('#t-muadhin').onclick=()=>{tr='muadhin';S.set('track',tr);load();};
 }
-function load(){ if(!tr) return pick(); deck=CARDS.filter(c=>tr==='imam'||!c.m); st=S.get(key(),{}); home(); }
+let sessNew=0;
+function load(){ if(!tr) return pick(); deck=CARDS.filter(c=>tr==='imam'||!c.m); st=S.get(key(),{}); rdoc=null; synced=false; home(); syncInit(); }
+const chap=()=>S.get('ch:'+tr,'');
+const lim=()=>S.get('lim',20);
+const pool=()=>{const ch=chap(); return ch?deck.filter(c=>c.b===ch):deck;};
 
 // حالة البطاقة: t = l (تتعلمها: step 0..3) | r (مراجعة: iv بالأيام، ease) — غير موجودة = جديدة
 function counts(){
   const now=Date.now(); let n=0,l=0,r=0,d=0;
-  for(const c of deck){const s=st[c.id]; if(!s) n++; else if(s.t==='l') l++; else if(s.due<=now) r++; else d++;}
+  for(const c of pool()){const s=st[c.id]; if(!s) n++; else if(s.t==='l') l++; else if(s.due<=now) r++; else d++;}
   return {n,l,r,d};
 }
 function home(){
@@ -109,18 +144,26 @@ function home(){
   app.innerHTML=`<div class="home"><h1>بطاقات الفقه · ${tr==='imam'?'إمام':'مؤذن'}</h1>
     <div class="stats"><div class="c-new"><b>${k.n}</b><span>جديدة</span></div><div class="c-learn"><b>${k.l}</b><span>تتعلمها</span></div>
       <div class="c-rev"><b>${k.r}</b><span>مراجعة اليوم</span></div><div class="c-done"><b>${k.d}</b><span>مؤجلة</span></div></div>
+    <p class="lbl">الباب</p>
+    <div class="chips" id="chs">${[['','كل الأبواب',deck]].concat([...new Set(deck.map(c=>c.b))].map(b=>[b,b,deck.filter(c=>c.b===b)])).map(([v,t,cs])=>`<button data-v="${esc(v)}" class="${chap()===v?'on':''}">${esc(t)}<small>${cs.filter(c=>st[c.id]).length}/${cs.length}</small></button>`).join('')}</div>
+    <p class="lbl">بطاقات جديدة في الجلسة</p>
+    <div class="chips" id="lims">${[10,20,30,50].map(n=>`<button data-n="${n}" class="${lim()===n?'on':''}">${n}</button>`).join('')}</div>
     <button class="big" id="go">${k.l+k.r+k.n?'ابدأ':'لا شيء الآن'}</button>
-    <p class="note">باقي ${left} يوم على الاختبار. اختبر نفسك قدر ما تبي: اللي ما تعرفه يمر بالشرح ثم الاختيار ثم الحفظ ثم الكتابة، واللي تعرفه يتأجل.</p>
+    <p class="note">باقي ${left} يوم على الاختبار. اختبر نفسك قدر ما تبي: اللي ما تعرفه يمر بالشرح ثم الاختيار ثم الحفظ ثم الكتابة، واللي تعرفه يتأجل. تقدر توقف متى ما تبي، وترجع تكمل من مكانك.</p>
+    <p class="sync">${syncTxt()}</p>
     <button class="link" id="sw">تغيير المسار</button></div>`;
-  app.querySelector('#go').onclick=()=>{sessionStart=Date.now();next();};
+  app.querySelectorAll('#chs button').forEach(b=>b.onclick=()=>{S.set('ch:'+tr,b.dataset.v);home();});
+  app.querySelectorAll('#lims button').forEach(b=>b.onclick=()=>{S.set('lim',+b.dataset.n);home();});
+  app.querySelector('#go').onclick=()=>{sessionStart=Date.now();sessNew=0;next();};
   app.querySelector('#sw').onclick=()=>{tr=null;S.set('track',null);pick();};
 }
 // الترتيب: ما يتعلمه (حان وقته) ← المراجعة المستحقة ← الجديد
 function queue(){
   const now=Date.now();
-  const L=deck.filter(c=>st[c.id]?.t==='l'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
-  const R=deck.filter(c=>st[c.id]?.t==='r'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
-  const N=deck.filter(c=>!st[c.id]);
+  const P=pool();
+  const L=P.filter(c=>st[c.id]?.t==='l'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
+  const R=P.filter(c=>st[c.id]?.t==='r'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
+  const N=sessNew<lim()?P.filter(c=>!st[c.id]):[];
   return [...L,...R,...N];
 }
 function bar(){
@@ -135,7 +178,7 @@ function next(){
   const q=queue();
   if(!q.length){
     // لا شيء مستحق الآن؛ إن بقيت بطاقات تتعلمها بعد دقائق نعرض أقربها
-    const soon=deck.filter(c=>st[c.id]?.t==='l').sort((a,b)=>st[a.id].due-st[b.id].due)[0];
+    const soon=pool().filter(c=>st[c.id]?.t==='l').sort((a,b)=>st[a.id].due-st[b.id].due)[0];
     if(soon) return show(soon);
     return home();
   }
@@ -143,20 +186,20 @@ function next(){
 }
 function show(c){
   const s=st[c.id];
-  if(!s) return flip(c,'<span class="tag new">جديدة</span>');
+  if(!s) return flip(c,'<span class="tag new">جديدة '+(sessNew+1)+'/'+lim()+'</span>',true);
   if(s.t==='r') return flip(c,'<span class="tag">مراجعة</span>');
   [explain,mcq,recall,write][s.step](c);
 }
 // ضع البطاقة في مرحلة تعلّم، وتعود بعد دقائق (بعد بطاقات أخرى)
-function learn(c,step,delay){ st[c.id]={t:'l',step,due:Date.now()+(delay??2*MIN),lapses:(st[c.id]?.lapses||0)}; save(); }
-function graduate(c,iv){ const s=st[c.id]||{}; st[c.id]={t:'r',iv,ease:s.ease||2.5,due:Math.min(Date.now()+iv*DAY,EXAM-DAY/2),reps:(s.reps||0)+1}; save(); }
+function learn(c,step,delay){ st[c.id]={t:'l',step,due:Date.now()+(delay??2*MIN),lapses:(st[c.id]?.lapses||0),u:Date.now()}; save(); }
+function graduate(c,iv){ const s=st[c.id]||{}; st[c.id]={t:'r',iv,ease:s.ease||2.5,due:Math.min(Date.now()+iv*DAY,EXAM-DAY/2),reps:(s.reps||0)+1,u:Date.now()}; save(); }
 
 // بطاقة جديدة أو مراجعة: السؤال ← الجواب ← أزرار Anki
-function flip(c,tag){
+function flip(c,tag,isNew){
   frame(c,tag,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.n?`<div class="x">${esc(c.n)}</div>`:''}</div>
     <div class="acts" id="acts"><button class="main" id="show">اكشف الجواب</button></div>`);
   app.querySelector('#show').onclick=()=>{
-    app.querySelector('#ans').hidden=false;
+    app.querySelector('#ans').hidden=false; if(isNew) sessNew++;
     const s=st[c.id], iv=s?.iv||0, ease=s?.ease||2.5;
     const hard=s?Math.max(1,Math.round(iv*1.2)):1, good=s?Math.max(iv+1,Math.round(iv*ease)):1, easy=s?Math.max(good+1,Math.round(iv*ease*1.3)):3;
     app.querySelector('#acts').className='acts four';
