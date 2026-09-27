@@ -169,6 +169,14 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 .match button.sel{border-color:var(--accent);background:var(--soft)}
 .match button.ok{opacity:.35;border-color:var(--accent)}
 .match button.no{border-color:var(--bad);background:var(--bad-soft)}
+.home.simple{align-content:start;gap:16px;padding-top:8px}
+.today{display:grid;justify-items:center;gap:2px;padding:18px;border-radius:16px;background:var(--surface);border:1px solid var(--line)}
+.today b{font-size:3rem;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+.today span{color:var(--muted)}
+.menu{display:grid;gap:10px}
+.menu button{display:grid;grid-template-columns:40px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;text-align:right;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.menu button span{grid-row:1/3;font-size:1.6rem;text-align:center}
+.menu button b{font-size:1.1rem} .menu button small{color:var(--muted)}
 .big.small{font-size:1rem;padding:13px}
 </style>
 
@@ -1091,6 +1099,97 @@ async function listenRun(){
   }
   if(!me.stop) home();
 }
+
+// ================== الواجهة المبسّطة ==================
+// شاشة رئيسية فيها زر واحد كبير، وبطاقة بسيطة: اختيار أو «اكشف» ثم عرفتها/ما عرفتها
+function allDue(){ const now=Date.now(); return deck.filter(c=>!muted(c)&&st[c.id]&&st[c.id].due<=now); }
+function todayList(extra){
+  const due=allDue().sort((a,b)=>st[a.id].due-st[b.id].due);
+  const n=(extra||0)+(plan().final?0:plan().left);
+  const fresh=mixNew(deck.filter(c=>!muted(c)&&!st[c.id])).slice(0,n);
+  return [...due,...fresh];
+}
+function home(){
+  U.length=0; stopSpeech(); SW=null; S.set('sub:'+tr,''); S.set('ch:'+tr,''); S.set('flt:'+tr,'all');
+  const left=Math.max(0,Math.ceil((EXAM-Date.now())/DAY)), L=todayList(), known=deck.filter(c=>st[c.id]?.t==='r'||muted(c)).length;
+  const pct=Math.round(100*known/Math.max(1,deck.length)), bad=deck.filter(c=>(st[c.id]?.bad||0)>0&&!muted(c)).length;
+  document.title=(L.length?'('+L.length+') ':'')+'بطاقات الاختبار';
+  app.innerHTML=`<div class="home simple">
+    <div><h1>بطاقات الاختبار</h1><p class="sub" style="margin:4px 0 0;color:var(--muted)">${tr==='imam'?'إمام':'مؤذن'} · باقي ${left} ${left===1?'يوم':'أيام'} على الاختبار</p></div>
+    <div class="today"><b>${L.length}</b><span>${L.length?'بطاقة عليك اليوم (20 كل مرة)':'خلصت اليوم ✓'}</span></div>
+    <button class="big" id="go">${L.length?'ابدأ':'زيدني 10 بطاقات'}</button>
+    <div><div class="meter" style="height:10px"><i style="width:${pct}%"></i></div><p class="note" style="margin-top:6px">حفظت ${known} من ${deck.length} (${pct}%)</p></div>
+    <div class="menu">
+      <button id="mock"><span>📝</span><b>اختبار تجريبي</b><small>مثل الاختبار الحقيقي</small></button>
+      <button id="mist"><span>❌</span><b>أخطائي</b><small>${bad?bad+" سؤال":"ولا غلطة للحين"}</small></button>
+      ${deck.some(c=>c.id==='h1r')?'<button id="h40"><span>📜</span><b>الأربعين النووية</b><small>الراوي ومن أخرجه</small></button>':''}
+    </div>
+    <p class="sync">${syncTxt()}</p>
+    <button class="link" id="sw">تغيير (إمام / مؤذن)</button></div>`;
+  on('#go',()=>run(L.length?L.slice(0,20):mixNew(deck.filter(c=>!muted(c)&&!st[c.id])).slice(0,10),'مذاكرة اليوم'));
+  on('#mock',()=>{ const M=marks(), subs=subjects(), tot=subs.reduce((a,k)=>a+M[k],0);
+    const items=subs.flatMap(k=>buildExam(Math.max(2,Math.round(50*M[k]/tot)),deck.filter(c=>c.s===k)));
+    page('📝 اختبار تجريبي',`<p class="note" style="text-align:right;font-size:1rem">50 سؤال من كل المواد، وعندك ساعة. الجواب الصح يطلع لك في الأخير.</p><button class="big" id="st">ابدأ الاختبار</button>`);
+    on('#st',()=>startExam(shuffle(items),'شامل',60)); });
+  on('#mist',()=>{ const l=deck.filter(c=>(st[c.id]?.bad||0)>0&&!muted(c)).sort((a,b)=>st[b.id].bad-st[a.id].bad).slice(0,20);
+    l.length?run(l,'أخطائي'):page('❌ أخطائي','<p class="note" style="font-size:1rem">ما عندك أخطاء للحين 👍</p>'); });
+  on('#h40',h40Simple);
+  on('#sw',()=>{tr=null;S.set('track',null);pick();});
+}
+// جلسة بسيطة: كل بطاقة تُسأل؛ الغلط يرجع بعد 3 بطاقات لين تعرفه
+let RQ=[], RI=0, RTOT=0, ROK=0, RT='', RSEEN={};
+function run(list,title){ RQ=list.slice(); RTOT=RQ.length; ROK=0; RT=title; RSEEN={}; sessionStart=Date.now(); runNext(); }
+function runNext(){
+  SW=null;
+  if(!RQ.length){ const rest=todayList().length;
+    page('🎉 أحسنت!',`<div class="today"><b>${ROK}</b><span>بطاقة خلصتها</span></div>${rest?`<button class="big" id="more">كمّل (باقي ${rest} اليوم)</button>`:'<p class="note" style="font-size:1.05rem;color:var(--accent);font-weight:700">خلصت كل بطاقات اليوم ✓</p>'}<button class="big alt" id="h">الرئيسية</button>`);
+    on('#h',home); on('#more',()=>run(todayList().slice(0,20),'مذاكرة اليوم')); return; }
+  const c=RQ[0], done=RTOT-RQ.length, pct=Math.round(100*done/Math.max(1,RTOT));
+  const useMcq=c.w&&c.w.length>=3&&(RSEEN[c.id]||0)===0&&Math.random()<.6;
+  const top=`<div class="bar"><button class="link" id="x">✕</button><div class="meter" style="flex:1"><i style="width:${pct}%"></i></div><span>${done}/${RTOT}</span></div>`;
+  const tag=`<p class="lbl" style="margin:0">${esc(SUBJ[c.s]||'')}${c.b?' · '+esc(c.b):''}</p>`;
+  if(useMcq){
+    const right=c.ca||c.a, opts=shuffle([right,...c.w]);
+    app.innerHTML=top+`<article class="card">${tag}<p class="q">${esc(c.q)}</p><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><div id="fb"></div><div class="acts" id="acts"></div></article>`;
+    $$('.opt').forEach(b=>b.onclick=()=>{ const ok=opts[+b.dataset.i]===right;
+      $$('.opt').forEach(x=>{x.disabled=true; if(opts[+x.dataset.i]===right) x.classList.add('right');}); if(!ok) b.classList.add('wrong');
+      runResult(c,ok); });
+  } else {
+    app.innerHTML=top+`<article class="card">${tag}<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div><div id="fb"></div>
+      <div class="acts" id="acts"><button class="main" id="show">اكشف الجواب</button></div></article>`;
+    on('#show',()=>{ $('#ans').hidden=false; const a=$('#acts'); a.className='acts two';
+      a.innerHTML=`<button class="again" id="no">ما عرفتها</button><button class="good" id="yes">عرفتها</button>`;
+      on('#no',()=>runResult(c,false,true)); on('#yes',()=>runResult(c,true,true)); SW={yes:()=>runResult(c,true,true),no:()=>runResult(c,false,true)}; });
+  }
+  on('#x',home);
+}
+function runResult(c,ok,flip){
+  SW=null; RSEEN[c.id]=(RSEEN[c.id]||0)+1;
+  const s=st[c.id];
+  if(ok){ tick(true); if(RSEEN[c.id]===1){ const iv=s&&s.t==='r'?Math.max((s.iv||1)+1,Math.round((s.iv||1)*2.5)):(s?1:2); graduate(c,iv); } else graduate(c,1); ROK++; }
+  else { learn(c,0,0); miss(c); }
+  const more=(!ok?`<div class="ex"><b>الجواب: </b>${esc(c.a)}</div>`:'')+(!ok&&c.ex?`<div class="x">${esc(c.ex)}</div>`:'')+(!ok&&c.y?`<div class="why"><b>ليش؟ </b>${esc(c.y)}</div>`:'');
+  if(flip&&ok){ RQ.shift(); return runNext(); }
+  $('#fb').innerHTML=`<p class="score" style="color:var(${ok?'--accent':'--bad'});font-size:1.1rem">${ok?'صح ✓':'مو مشكلة، بترجع لك بعد شوي'}</p>${flip?'':more}${flip&&!ok&&(c.ex||c.y)?(c.ex?`<div class="x">${esc(c.ex)}</div>`:'')+(c.y?`<div class="why"><b>ليش؟ </b>${esc(c.y)}</div>`:''):''}`;
+  const a=$('#acts'); a.className='acts'; a.innerHTML=`<button class="main" id="nx">التالي</button>`;
+  on('#nx',()=>{ RQ.shift(); if(!ok) RQ.splice(Math.min(RQ.length,3),0,c); runNext(); });
+}
+// الأربعين: لعبتين + اختبار + الجدول
+function h40Simple(){
+  const H=deck.filter(c=>c.s==='hadith'&&/^الأربعون/.test(c.b));
+  page('📜 الأربعين النووية',`<div class="menu">
+      <button id="a"><span>👤</span><b>من الراوي؟</b><small>42 حديث</small></button>
+      <button id="b"><span>📚</span><b>من أخرجه؟</b><small>42 حديث</small></button>
+      <button id="c"><span>🎮</span><b>لعبة الصناديق</b><small>البخاري؟ مسلم؟</small></button>
+      <button id="d"><span>🔗</span><b>لعبة التوصيل</b><small>الحديث ↔ الراوي</small></button>
+      <button id="e"><span>🧠</span><b>طريقة الحفظ</b><small>القاعدة والاستثناءات</small></button>
+    </div>`);
+  on('#a',()=>run(shuffle(H.filter(c=>c.b==='الأربعون: الراوي')).slice(0,15),'من الراوي؟'));
+  on('#b',()=>run(shuffle(H.filter(c=>c.b==='الأربعون: من أخرجه')).slice(0,15),'من أخرجه؟'));
+  on('#c',()=>binGame(shuffle(h40Rows()).slice(0,15),0,0)); on('#d',()=>matchGame(0,0)); on('#e',memPage);
+}
+// قائمة بسيطة بلا أزرار (نتائج الاختبار)
+function rows(list){ if(!list.length) return ''; return `<div class="list">${list.map(c=>`<div class="row"><div class="rq">${esc(c.q)}</div><div class="ra">${esc(c.a)}</div></div>`).join('')}</div>`; }
 applyFs();
 load();
 </script>
