@@ -53,7 +53,7 @@ content = []
 for f in sorted((SH / "content").glob("c_*.json")):
     for ch in json.loads(f.read_text(encoding="utf-8")):
         pg = lambda o: int(o.get("pdf", 0)) + 8   # رقم الصفحة المطبوع
-        why = {w["card"]: w for w in ch.get("why", []) if w.get("card") in ids}
+        why = {w["card"]: w for w in ch.get("why", []) if w.get("card") in ids and "الكتاب نص" not in w["y"] and not w["y"].startswith("لأن الكتاب ذكر")}   # تعليل دائري لا يفيد
         for c in cards:
             if c["id"] in why: c["y"] = why[c["id"]]["y"]
         content.append({
@@ -63,6 +63,7 @@ for f in sorted((SH / "content").glob("c_*.json")):
             "traps": [{"t": t["t"], "right": t["right"], "wrong": t["wrong"], "p": pg(t), "card": t.get("card") if t.get("card") in ids else None} for t in ch.get("traps", [])],
             "cases": [{"q": k["q"], "a": k["a"], "w": k["w"][:3], "p": pg(k), "card": k.get("card") if k.get("card") in ids else None} for k in ch.get("cases", []) if len(k.get("w", [])) >= 3],
         })
+content.sort(key=lambda k: rank({"b": k["b"]}))
 tpl = (D / "template.html").read_text(encoding="utf-8")
 tpl = tpl.replace("/*CONTENT*/[]", json.dumps(content, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 out = tpl.replace("/*CARDS*/[]", json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
