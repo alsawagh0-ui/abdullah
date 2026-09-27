@@ -41,7 +41,7 @@ for f in sorted(V.glob("final_[0-9].json")):
 for c in cards: c["s"] = "fiqh"
 # بقية المواد من «الصفوة» (sheikh/safwa_cards) + بطاقات الأربعين المولّدة من جدول صفوة الحديث
 SC = SH / "safwa_cards"
-subj_of = {"s_aqeedah": "aqeedah", "s_nahw": "nahw", "s_tajweed": "tajweed", "s_mithaq": "mithaq", "s_hadith": "hadith", "h40": "hadith"}
+subj_of = {"s_aqeedah": "aqeedah", "s_nahw": "nahw", "s_tajweed": "tajweed", "s_mithaq": "mithaq", "s_hadith": "hadith", "h40": "hadith", "s_tafsir": "tafsir"}
 extra = []
 for stem, sj in subj_of.items():
     f = SC / (stem + ".json")
