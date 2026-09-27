@@ -1,4 +1,4 @@
-<title>بطاقات الفقه</title>
+<title>بطاقات الاختبار</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;600&display=swap">
 <style>
@@ -214,7 +214,7 @@ const NUMRE=/[0-9٠-٩]|(?:^|[\s،(«:؛-])[وبفل]?(?:اثن|ثنت|ثلاث|
 const isNum=c=>NUMRE.test(c.a);
 
 function pick(){
-  app.innerHTML=`<div class="pick"><h1>بطاقات الفقه</h1><p class="sub">أسئلة دورة الشيخ عبدالسلام الفيلكاوي</p>
+  app.innerHTML=`<div class="pick"><h1>بطاقات الاختبار</h1><p class="sub">الفقه، والحديث، والعقيدة، والنحو، والتفسير، والتجويد، وميثاق المسجد</p>
     <button id="t-imam">إمام</button><button id="t-muadhin">مؤذن</button></div>`;
   on('#t-imam',()=>{tr='imam';S.set('track',tr);load();});
   on('#t-muadhin',()=>{tr='muadhin';S.set('track',tr);load();});
@@ -288,7 +288,7 @@ function dueInfo(){
 function home(){
   U.length=0; stopSpeech(); applyFs();
   const k=counts(), left=Math.max(0,Math.ceil((EXAM-Date.now())/DAY)), di=dueInfo();
-  document.title=(di.due?'('+di.due+') ':'')+'بطاقات الفقه';
+  document.title=(di.due?'('+di.due+') ':'')+'بطاقات الاختبار';
   const today=X.log[dkey()]||{n:0}, g=goal(), sk=streak();
   const chs=chapters(), fl=flt();
   const row=(v,t,cs)=>{const done=cs.filter(c=>st[c.id]?.t==='r'||muted(c)).length, pct=cs.length?Math.round(100*done/cs.length):0;
