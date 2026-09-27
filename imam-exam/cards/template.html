@@ -80,6 +80,48 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 .lbl{margin:0;font-size:.85rem;font-weight:600;color:var(--muted)}
 .sync{margin:0;font-size:.78rem;color:var(--muted);text-align:center}
 @media (max-width:380px){.acts.four{grid-template-columns:1fr 1fr}}
+.card{font-size:calc(1rem*var(--fs,1))}
+.q{font-size:1.28em!important} .a{font-size:1.18em!important}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.fsz{display:flex;gap:4px}
+.fsz button,.ibtn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:4px 10px;font-weight:700}
+.banner{padding:12px 14px;border-radius:10px;background:var(--blue-soft);color:var(--blue);font-weight:600;line-height:1.7}
+.banner.ok{background:var(--soft);color:var(--accent)}
+.goal{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.92rem;color:var(--muted)}
+.goal b{color:var(--ink)}
+.meter{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.chaps{display:grid;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px}
+.chaps button{display:grid;grid-template-columns:minmax(0,1fr) 72px auto;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:8px;background:none;color:var(--ink);text-align:right}
+.chaps button.on{background:var(--soft)}
+.chaps button span{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chaps small{color:var(--muted);font-variant-numeric:tabular-nums;font-size:.8rem;min-width:52px;text-align:left}
+.chaps .ms{color:var(--accent);font-weight:700}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tools button{padding:13px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;text-align:right;display:grid;gap:2px;line-height:1.4}
+.tools button small{font-weight:400;color:var(--muted);font-size:.76rem}
+.pred{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--surface)}
+.pred b{font-size:1.6rem;color:var(--accent);font-variant-numeric:tabular-nums}
+.pred span{color:var(--muted);font-size:.85rem}
+.page{display:grid;gap:12px;align-content:start}
+.page h1{margin:0;font-size:1.3rem}
+.back{justify-self:start}
+.list{display:grid;gap:8px}
+.row{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:8px}
+.row .rq{font-weight:700;line-height:1.7}
+.row .ra{font-family:"Noto Naskh Arabic",serif;line-height:1.9;border-top:1px dashed var(--line);padding-top:8px;white-space:pre-line}
+.row .rt{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.8rem;color:var(--muted)}
+.row .rt button{border:1px solid var(--line);background:none;color:var(--ink);border-radius:7px;padding:3px 9px;font-size:.8rem}
+.row .rt .badb{color:var(--bad)}
+.inp{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+.tbl{width:100%;border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right}
+.tbl th{color:var(--muted);font-weight:600}
+.set{display:grid;gap:8px;padding:14px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.set label{display:flex;gap:10px;align-items:center;font-weight:600}
+.tfbox{padding:12px 14px;border-radius:10px;border:1px dashed var(--accent);font-family:"Noto Naskh Arabic",serif;font-size:1.12em;line-height:1.9}
+.swipehint{text-align:center;font-size:.78rem;color:var(--muted);margin:0}
+.big.small{font-size:1rem;padding:13px}
 </style>
 
 <div class="wrap" id="app"></div>
@@ -93,11 +135,18 @@ const app=document.getElementById('app');
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
 const fmt=ms=>ms<DAY?(ms<60*MIN?'بعد قليل':'اليوم'):(()=>{const d=Math.round(ms/DAY);return d===1?'يوم':d===2?'يومين':d+' أيام';})();
+const fmtIn=ms=>ms<60*MIN?Math.max(1,Math.round(ms/MIN))+' دقيقة':ms<DAY?Math.round(ms/36e5)+' ساعة':fmt(ms);
+const dkey=(t=Date.now())=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+const $=q=>app.querySelector(q), $$=q=>app.querySelectorAll(q);
+const on=(q,f)=>{const e=$(q); if(e) e.onclick=f;};
 
-let tr=S.get('track',null), st={}, deck=[], sessionStart=0;
-const key=()=> 'anki:'+tr;
+let tr=S.get('track',null), st={}, X={}, deck=[], sessionStart=0;
+const key=()=> 'anki:'+tr, xkey=()=> 'x:'+tr;
+const blankX=()=>({star:{},mute:{},log:{},exams:[],mastered:{},u:0});
 const save=()=>{S.set(key(),st);push();};
-// المزامنة مع حسابك (تبقى محفوظة حتى لو انمسح المتصفح أو فتحت من جهاز ثاني)
+const saveX=()=>{X.u=Date.now();S.set(xkey(),X);push();};
+
+// ===== المزامنة مع حسابك =====
 let rdoc=null, rtr=null, rbusy=false, rdirty=false, rtimer=0, synced=false;
 async function syncInit(){
   try{
@@ -105,123 +154,169 @@ async function syncInit(){
     const [db,user]=await Promise.all([claude.use('db'),claude.use('user')]);
     if(!db||!user) return; const uid=await user.id(); if(!uid) return;
     rtr=tr; rdoc=db.doc('data/users/'+uid+'/anki-'+tr);
-    const snap=await rdoc.get(), remote=(snap.exists&&snap.data()?.st)||{};
+    const snap=await rdoc.get(), d=(snap.exists&&snap.data())||{}, remote=d.st||{}, rx=d.x;
     let changed=false, needPush=false;
     for(const [id,r] of Object.entries(remote)){ const l=st[id]; if(!l||(r.u||0)>(l.u||0)){st[id]=r;changed=true;} }
     for(const [id,l] of Object.entries(st)){ const r=remote[id]; if(!r||(l.u||0)>(r.u||0)) needPush=true; }
-    synced=snap.exists; S.set(key(),st);
+    if(rx&&(rx.u||0)>(X.u||0)){X=Object.assign(blankX(),rx);changed=true;} else if((X.u||0)>((rx&&rx.u)||0)) needPush=true;
+    synced=snap.exists; S.set(key(),st); S.set(xkey(),X);
     if(needPush||!snap.exists) push(true);
-    if(changed&&app.querySelector('.home')) home(); else { const e=app.querySelector('.sync'); if(e) e.textContent=syncTxt(); }
+    if(changed&&$('.home')) home(); else { const e=$('.sync'); if(e) e.textContent=syncTxt(); }
   }catch(e){}
 }
 function push(now){
   if(!rdoc||rtr!==tr) return; rdirty=true; clearTimeout(rtimer);
   rtimer=setTimeout(async()=>{ if(rbusy) return; rbusy=true;
-    while(rdirty){ rdirty=false; try{ await rdoc.set({st:JSON.parse(JSON.stringify(st))}); if(!synced){synced=true; const e=app.querySelector('.sync'); if(e) e.textContent=syncTxt();} }catch(e){ rdoc=null; synced=false; break; } }
+    while(rdirty){ rdirty=false; try{ await rdoc.set({st:JSON.parse(JSON.stringify(st)),x:JSON.parse(JSON.stringify(X))}); if(!synced){synced=true; const e=$('.sync'); if(e) e.textContent=syncTxt();} }catch(e){ rdoc=null; synced=false; break; } }
     rbusy=false; }, now?0:1500);
 }
 const syncTxt=()=>synced?'تقدمك محفوظ في حسابك ✓':'تقدمك محفوظ على هذا الجهاز';
 
+// ===== الإعدادات =====
+const lim=()=>S.get('lim',20);
+const goal=()=>S.get('goal',40);
+const skipW=()=>S.get('skipW',false);
+const fs=()=>S.get('fs',1);
+const applyFs=()=>document.documentElement.style.setProperty('--fs',fs());
+const chap=()=>S.get('ch:'+tr,'');
+const flt=()=>S.get('flt:'+tr,'all');
+// بطاقات الأرقام: جوابها فيه عدد
+const NUMRE=/[0-9٠-٩]|(?:^|[\s،(«:؛-])[وبفل]?(?:اثن|ثنت|ثلاث|أربع|خمس|سبع|ثمان|تسع|عشر|مائة|مئة|مائت|مئت|ألف|ثلث|ربع|نصف|شاتان|شاتين|مرتين|مرتان|سابع|ثالث|رابع|سادس|ثامن|تاسع|عاشر|واحدة?(?=$|[\s،.)»؛:])|ست(?:ة|ون|ين)?(?=$|[\s،.)»؛:]))/;
+const isNum=c=>NUMRE.test(c.a);
+
 function pick(){
   app.innerHTML=`<div class="pick"><h1>بطاقات الفقه</h1><p class="sub">أسئلة دورة الشيخ عبدالسلام الفيلكاوي</p>
     <button id="t-imam">إمام</button><button id="t-muadhin">مؤذن</button></div>`;
-  app.querySelector('#t-imam').onclick=()=>{tr='imam';S.set('track',tr);load();};
-  app.querySelector('#t-muadhin').onclick=()=>{tr='muadhin';S.set('track',tr);load();};
+  on('#t-imam',()=>{tr='imam';S.set('track',tr);load();});
+  on('#t-muadhin',()=>{tr='muadhin';S.set('track',tr);load();});
 }
 let sessNew=0;
-function load(){ if(!tr) return pick(); deck=CARDS.filter(c=>tr==='imam'||!c.m); st=S.get(key(),{}); rdoc=null; synced=false; home(); syncInit(); }
-const chap=()=>S.get('ch:'+tr,'');
-const lim=()=>S.get('lim',20);
-const pool=()=>{const ch=chap(); return ch?deck.filter(c=>c.b===ch):deck;};
+function load(){ if(!tr) return pick(); deck=CARDS.filter(c=>tr==='imam'||!c.m); st=S.get(key(),{}); X=Object.assign(blankX(),S.get(xkey(),{})); rdoc=null; synced=false; home(); syncInit(); }
+const muted=c=>!!X.mute[c.id];
+const chapters=()=>[...new Set(deck.map(c=>c.b))];
+function pool(){
+  const ch=chap(), f=flt();
+  return deck.filter(c=>!muted(c)&&(!ch||c.b===ch)&&(f==='all'||(f==='num'&&isNum(c))||(f==='star'&&X.star[c.id])||(f==='hard'&&(st[c.id]?.bad||0)>0)));
+}
 
-// حالة البطاقة: t = l (تتعلمها: step 0..3) | r (مراجعة: iv بالأيام، ease) — غير موجودة = جديدة
-function counts(){
+// ===== السجل اليومي والهدف =====
+let lastAct=0;
+function tick(ok){
+  const k=dkey(), L=X.log[k]||(X.log[k]={n:0,ok:0,bad:0,sec:0}), now=Date.now();
+  L.n++; if(ok===true) L.ok++; if(ok===false) L.bad++;
+  if(lastAct) L.sec+=Math.round(Math.min(60e3,now-lastAct)/1000); lastAct=now;
+  const ks=Object.keys(X.log).sort(); while(ks.length>40) delete X.log[ks.shift()];
+  saveX();
+}
+function streak(){
+  let n=0, t=Date.now(); const g=goal();
+  if(!((X.log[dkey(t)]?.n||0)>=g)) t-=DAY; // اليوم ما اكتمل بعد: نحسب من أمس
+  while((X.log[dkey(t)]?.n||0)>=g){n++;t-=DAY;}
+  return n;
+}
+function miss(c){ const s=st[c.id]; if(s){s.bad=(s.bad||0)+1; s.u=Date.now();} save(); tick(false); }
+
+// ===== توقع الدرجة =====
+function predict(){
+  const cs=deck; if(!cs.length) return 0; let sum=0;
+  for(const c of cs){
+    const s=st[c.id]; let p;
+    if(muted(c)) p=.95; else if(!s) p=.15; else if(s.t==='l') p=.45+(s.step||0)*.05; else p=(s.iv||0)>=3?.92:.82;
+    p-=Math.min(.3,(s?.bad||0)*.03); sum+=Math.max(.1,p);
+  }
+  let v=60*sum/cs.length; const last=X.exams.filter(e=>e.k==='تجريبي'&&(e.done??e.total)>=40).pop();
+  if(last) v=(v+60*last.score/last.total)/2;
+  return Math.round(v);
+}
+
+// ===== الصفحة الرئيسية =====
+function counts(P=pool()){
   const now=Date.now(); let n=0,l=0,r=0,d=0;
-  for(const c of pool()){const s=st[c.id]; if(!s) n++; else if(s.t==='l') l++; else if(s.due<=now) r++; else d++;}
+  for(const c of P){const s=st[c.id]; if(!s) n++; else if(s.t==='l') l++; else if(s.due<=now) r++; else d++;}
   return {n,l,r,d};
 }
+const EOD=()=>{const d=new Date(); d.setHours(23,59,59,999); return d.getTime();};
+function dueInfo(){
+  const now=Date.now(); let due=0, nextT=Infinity;
+  for(const c of deck){ if(muted(c)) continue; const s=st[c.id]; if(!s) continue; if(s.due<=now) due++; else nextT=Math.min(nextT,s.due); }
+  return {due,nextT};
+}
 function home(){
-  const k=counts(), left=Math.max(0,Math.ceil((EXAM-Date.now())/DAY));
-  app.innerHTML=`<div class="home"><h1>بطاقات الفقه · ${tr==='imam'?'إمام':'مؤذن'}</h1>
+  U.length=0; stopSpeech(); applyFs();
+  const k=counts(), left=Math.max(0,Math.ceil((EXAM-Date.now())/DAY)), di=dueInfo();
+  document.title=(di.due?'('+di.due+') ':'')+'بطاقات الفقه';
+  const today=X.log[dkey()]||{n:0}, g=goal(), sk=streak();
+  const chs=chapters(), fl=flt();
+  const row=(v,t,cs)=>{const done=cs.filter(c=>st[c.id]?.t==='r'||muted(c)).length, pct=cs.length?Math.round(100*done/cs.length):0;
+    return `<button data-v="${esc(v)}" class="${chap()===v?'on':''}"><span>${esc(t)}${v&&X.mastered[v]?' <b class="ms">✓</b>':''}</span><div class="meter"><i style="width:${pct}%"></i></div><small>${pct}% · ${done}/${cs.length}</small></button>`;};
+  app.innerHTML=`<div class="home">
+    <div class="topline"><h1>بطاقات الفقه · ${tr==='imam'?'إمام':'مؤذن'}</h1><div class="fsz"><button id="fsm">A−</button><button id="fsp">A+</button></div></div>
+    ${di.due?`<div class="banner">عندك ${di.due} بطاقة مستحقة الحين</div>`:(isFinite(di.nextT)?`<div class="banner ok">ما عليك مراجعة الحين ✓ الجاية بعد ${fmtIn(di.nextT-Date.now())}</div>`:'')}
+    <div class="goal"><span>هدف اليوم: <b>${Math.min(today.n,g)}/${g}</b></span><span>🔥 <b>${sk}</b> ${sk===1?'يوم':'أيام'} متتالية</span><span>باقي <b>${left}</b> يوم</span></div>
+    <div class="meter"><i style="width:${Math.min(100,Math.round(100*today.n/g))}%"></i></div>
     <div class="stats"><div class="c-new"><b>${Math.min(k.n,lim())}</b><span>جديدة الحين</span></div><div class="c-learn"><b>${k.l}</b><span>تتعلمها</span></div>
       <div class="c-rev"><b>${k.r}</b><span>مراجعة اليوم</span></div><div class="c-done"><b>${k.d}</b><span>مؤجلة</span></div></div>
+    <p class="lbl">نوع البطاقات</p>
+    <div class="chips" id="flts">${[['all','الكل'],['num','الأرقام بس'],['star','⭐ المعلّمة'],['hard','الأصعب']].map(([v,t])=>`<button data-f="${v}" class="${fl===v?'on':''}">${t}</button>`).join('')}</div>
     <p class="lbl">الباب</p>
-    <div class="chips" id="chs">${[['','كل الأبواب',deck]].concat([...new Set(deck.map(c=>c.b))].map(b=>[b,b,deck.filter(c=>c.b===b)])).map(([v,t,cs])=>`<button data-v="${esc(v)}" class="${chap()===v?'on':''}">${esc(t)}<small>${cs.filter(c=>st[c.id]).length}/${cs.length}</small></button>`).join('')}</div>
-    <p class="lbl">بطاقات جديدة في الجلسة <span style="font-weight:400">(باقي في هذا الباب ${k.n} جديدة)</span></p>
+    <div class="chaps" id="chs">${row('','كل الأبواب',deck.filter(c=>!muted(c)||1))}${chs.map(b=>row(b,b,deck.filter(c=>c.b===b))).join('')}</div>
+    <p class="lbl">بطاقات جديدة في الجلسة <span style="font-weight:400">(باقي ${k.n} جديدة)</span></p>
     <div class="chips" id="lims">${[10,20,30,50].map(n=>`<button data-n="${n}" class="${lim()===n?'on':''}">${n}</button>`).join('')}</div>
     <button class="big" id="go">${k.l+k.r+k.n?'ابدأ'+(k.n?' · '+Math.min(k.n,lim())+' جديدة':''):'لا شيء الآن'}</button>
     ${seen().length?`<button class="big alt" id="cram">اختبر نفسك في اللي درسته (${seen().length})</button>`:(pool().some(c=>st[c.id])?'<p class="note" style="color:var(--accent);font-weight:700">كل اللي درسته منجز ومتأجل ✓</p>':'')}
-    <p class="note">باقي ${left} يوم على الاختبار. اختبر نفسك قدر ما تبي: اللي ما تعرفه يمر بالشرح ثم الاختيار ثم الحفظ ثم الكتابة، واللي تعرفه يتأجل. تقدر توقف متى ما تبي، وترجع تكمل من مكانك.</p>
+    <div class="pred"><div><span>توقّع درجتك تقريباً</span></div><div><b>${predict()}</b> <span>من 60</span></div></div>
+    <p class="lbl">أدوات</p>
+    <div class="tools">
+      <button id="t-mock">📝 اختبار تجريبي<small>60 سؤال بوقت</small></button>
+      <button id="t-cexam">🎯 اختبار الباب<small>15 سؤال، 90% = أتقنته</small></button>
+      <button id="t-night">🌙 ليلة الاختبار<small>كل البطاقات بسرعة</small></button>
+      <button id="t-listen">🎧 وضع الاستماع<small>يقرا لك السؤال والجواب</small></button>
+      <button id="t-hard">🔴 أصعب بطاقاتي<small>اللي غلطت فيها أكثر</small></button>
+      <button id="t-star">⭐ المعلّمة بنجمة<small>${Object.keys(X.star).length} بطاقة</small></button>
+      <button id="t-search">🔍 بحث<small>في الأسئلة والأجوبة</small></button>
+      <button id="t-read">📖 الباب كقائمة<small>اقرأه مثل الملخص</small></button>
+      <button id="t-prog">📊 تقدمي وسجلّي<small>أيامك ودرجاتك</small></button>
+      <button id="t-set">⚙️ الإعدادات<small>الهدف، الكتابة، المكتومة</small></button>
+    </div>
+    <p class="note">اللي ما تعرفه يمر بالشرح ثم الاختيار ثم الحفظ ثم الكتابة، واللي تعرفه يتأجل. تقدر توقف متى ما تبي، وترجع تكمل من مكانك.</p>
     <p class="sync">${syncTxt()}</p>
     <button class="link" id="sw">تغيير المسار</button></div>`;
-  app.querySelectorAll('#chs button').forEach(b=>b.onclick=()=>{S.set('ch:'+tr,b.dataset.v);home();});
-  app.querySelectorAll('#lims button').forEach(b=>b.onclick=()=>{S.set('lim',+b.dataset.n);home();});
-  app.querySelector('#go').onclick=()=>{sessionStart=Date.now();sessNew=0;next();};
-  app.querySelector('#sw').onclick=()=>{tr=null;S.set('track',null);pick();};
-  const cb=app.querySelector('#cram'); if(cb) cb.onclick=cram;
+  on('#fsm',()=>{S.set('fs',Math.max(.85,+(fs()-.1).toFixed(2)));applyFs();});
+  on('#fsp',()=>{S.set('fs',Math.min(1.5,+(fs()+.1).toFixed(2)));applyFs();});
+  $$('#chs button').forEach(b=>b.onclick=()=>{S.set('ch:'+tr,b.dataset.v);home();});
+  $$('#flts button').forEach(b=>b.onclick=()=>{S.set('flt:'+tr,b.dataset.f);home();});
+  $$('#lims button').forEach(b=>b.onclick=()=>{S.set('lim',+b.dataset.n);home();});
+  on('#go',()=>{sessionStart=Date.now();sessNew=0;next();});
+  on('#cram',()=>cram());
+  on('#sw',()=>{tr=null;S.set('track',null);pick();});
+  on('#t-mock',()=>mockIntro()); on('#t-cexam',()=>chapExamIntro()); on('#t-night',()=>night());
+  on('#t-listen',()=>listenIntro()); on('#t-hard',()=>hardPage()); on('#t-star',()=>starPage());
+  on('#t-search',()=>searchPage()); on('#t-read',()=>readPage()); on('#t-prog',()=>progPage()); on('#t-set',()=>setPage());
 }
-// مراجعة حرة: اللي تتعلمها + مراجعات اليوم فقط. كل بطاقة تحتاج «عرفتها» مرتين متتاليتين، وبعدها تنجز وتتأجل أيام
-const EOD=()=>{const d=new Date(); d.setHours(23,59,59,999); return d.getTime();};
-const seen=()=>{const e=EOD(); return pool().filter(c=>{const s=st[c.id]; return s&&(s.t==='l'||s.due<=e);});};
-const NEED=2, MAXSEEN=4;
-const weak=c=>{const s=st[c.id]; return s.t==='l'?-100+(s.step||0):(s.iv||0)-(s.lapses||0)*2;};
-let cq=[], cdone=0, cleft=0, cshown={}, ctot=0;
-function cram(){
-  cq=shuffle(seen()).sort((a,b)=>weak(a)-weak(b)).slice(0,20);
-  ctot=cq.length; cdone=0; cleft=0; cshown={}; sessionStart=Date.now(); cramNext();
+
+// ===== السحب بالإصبع: يمين = عرفتها، يسار = ما عرفتها =====
+let SW=null, tx=0, ty=0;
+app.addEventListener('touchstart',e=>{const t=e.changedTouches[0];tx=t.clientX;ty=t.clientY;},{passive:true});
+app.addEventListener('touchend',e=>{ if(!SW) return; const t=e.changedTouches[0], dx=t.clientX-tx, dy=t.clientY-ty;
+  if(Math.abs(dx)>70&&Math.abs(dy)<60){ const f=dx>0?SW.yes:SW.no; SW=null; f&&f(); } },{passive:true});
+const swipeHint='<p class="swipehint">تقدر تسحب البطاقة: يمين ← عرفتها · يسار → ما عرفتها</p>';
+
+// ===== الرجوع خطوة =====
+const U=[];
+function snap(c,restore){ U.push({id:c.id,prev:st[c.id]?JSON.parse(JSON.stringify(st[c.id])):null,restore}); if(U.length>20) U.shift(); }
+function undo(){ const u=U.pop(); if(!u) return; if(u.prev) st[u.id]=u.prev; else delete st[u.id]; st[u.id]&&(st[u.id].u=Date.now()); save(); u.restore(); }
+const undoBtn=()=>U.length?'<button class="link" id="undo">↶ رجوع</button>':'';
+
+// ===== أدوات البطاقة: نجمة وكتم =====
+const cardTools=c=>`<span style="margin-inline-start:auto;display:flex;gap:6px"><button class="ibtn" data-star="${c.id}" title="نجمة">${X.star[c.id]?'★':'☆'}</button><button class="ibtn" data-mute="${c.id}" title="أعرفها أكيد">أعرفها أكيد</button></span>`;
+function wireTools(after){
+  $$('[data-star]').forEach(b=>b.onclick=()=>{const id=b.dataset.star; if(X.star[id]) delete X.star[id]; else X.star[id]=1; saveX(); b.textContent=X.star[id]?'★':'☆';});
+  $$('[data-mute]').forEach(b=>b.onclick=()=>{X.mute[b.dataset.mute]=1; saveX(); after&&after();});
 }
-function cramNext(){ if(!cq.length) return cramDone(); cramShow(); }
-function cramBar(){ return `<div class="bar"><span class="cnt"><b style="color:var(--accent)">أنجزت ${cdone}/${ctot}</b></span><span>مراجعة حرة</span><button class="link" id="home">إنهاء</button></div>`; }
-function cramFrame(c,body){ const s=st[c.id], k=s.ok||0;
-  app.innerHTML=cramBar()+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span><span class="tag">${'●'.repeat(k)+'○'.repeat(NEED-k)} باقي ${NEED-k} وتنجز</span></div>${body}</article>`;
-  app.querySelector('#home').onclick=home; }
-function cramDone(){
-  const rest=seen().length;
-  app.innerHTML=`<div class="home"><h1>${cdone?'أحسنت!':'خلصت المراجعة'}</h1><div class="stats" style="grid-template-columns:1fr 1fr"><div class="c-rev"><b>${cdone}</b><span>أنجزتها وتأجلت أيام</span></div><div class="c-learn"><b>${cleft}</b><span>باقية تتعلمها</span></div></div>
-    ${rest?`<button class="big" id="again">كمّل (${rest} باقية)</button>`:'<p class="note" style="font-size:1.05rem;color:var(--accent);font-weight:700">ما عليك شي الحين ✓ كل اللي درسته متأجل</p>'}
-    <button class="big alt" id="back">الرئيسية</button>
-    <p class="note">كل بطاقة تقول فيها «عرفتها» مرتين ورا بعض تنجز وما ترجع إلا بعد أيام. واللي تغلط فيها ترجع من الصفر.</p></div>`;
-  const ag=app.querySelector('#again'); if(ag) ag.onclick=cram; app.querySelector('#back').onclick=home;
-}
-function cramRes(c,ok){
-  cq.shift(); cshown[c.id]=(cshown[c.id]||0)+1;
-  if(ok){
-    const k=(st[c.id].ok||0)+1;
-    if(k>=NEED){ const s=st[c.id]; graduate(c, s.t==='r'?Math.max((s.iv||1)+1,Math.round((s.iv||1)*(s.ease||2.5))):2); cdone++; return cramNext(); }
-    st[c.id].ok=k; st[c.id].u=Date.now(); save();
-  } else { learn(c,0,0); st[c.id].ok=0; save(); }
-  // ترجع في نفس الجولة بعد بطاقتين أو ثلاث
-  if(cshown[c.id]<MAXSEEN) cq.splice(Math.min(cq.length,3),0,c); else cleft++;
-  cramNext();
-}
-function cramShow(){
-  const c=cq[0];
-  if(c.w&&c.w.length>=3&&Math.random()<.5){
-    const right=c.ca||c.a, opts=shuffle([right,...c.w]);
-    cramFrame(c,`<p class="q">${esc(c.q)}</p><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><div class="acts" id="acts"></div>`);
-    app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
-      const ok=opts[+b.dataset.i]===right;
-      app.querySelectorAll('.opt').forEach(x=>{x.disabled=true; if(opts[+x.dataset.i]===right) x.classList.add('right');});
-      if(!ok) b.classList.add('wrong');
-      app.querySelector('#acts').innerHTML=`<button class="main" id="nx">${ok?'صح، التالي':'التالي'}</button>`;
-      app.querySelector('#nx').onclick=()=>cramRes(c,ok);
-    });
-  } else {
-    cramFrame(c,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div>
-      <div class="acts" id="acts"><button class="main" id="show">جاوب في راسك ثم اكشف</button></div>`);
-    app.querySelector('#show').onclick=()=>{
-      app.querySelector('#ans').hidden=false;
-      const a=app.querySelector('#acts'); a.className='acts two';
-      a.innerHTML=`<button class="again" id="no">ما عرفتها</button><button class="good" id="yes">عرفتها</button>`;
-      a.querySelector('#no').onclick=()=>cramRes(c,false);
-      a.querySelector('#yes').onclick=()=>cramRes(c,true);
-    };
-  }
-}
-// الترتيب: ما يتعلمه (حان وقته) ← المراجعة المستحقة ← الجديد
+
+// ===== الجلسة (Anki) =====
 function queue(){
-  const now=Date.now();
-  const P=pool();
+  const now=Date.now(), P=pool();
   const L=P.filter(c=>st[c.id]?.t==='l'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
   const R=P.filter(c=>st[c.id]?.t==='r'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
   const N=sessNew<lim()?P.filter(c=>!st[c.id]):[];
@@ -229,16 +324,18 @@ function queue(){
 }
 function bar(){
   const k=counts(), m=Math.floor((Date.now()-sessionStart)/MIN);
-  return `<div class="bar"><span class="cnt"><b style="color:var(--blue)">${Math.max(0,Math.min(k.n,lim()-sessNew))}</b><b style="color:var(--bad)">${k.l}</b><b style="color:var(--accent)">${k.r}</b></span><span>${m} دقيقة</span><button class="link" id="home">إنهاء</button></div>`;
+  return `<div class="bar"><span class="cnt"><b style="color:var(--blue)">${Math.max(0,Math.min(k.n,lim()-sessNew))}</b><b style="color:var(--bad)">${k.l}</b><b style="color:var(--accent)">${k.r}</b></span><span>${m} دقيقة</span>${undoBtn()}<button class="link" id="home">إنهاء</button></div>`;
 }
-function frame(c,tag,body){
-  app.innerHTML=bar()+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span>${tag}</div>${body}</article>`;
-  app.querySelector('#home').onclick=home;
+function frame(c,tag,body,barHtml){
+  SW=null;
+  app.innerHTML=(barHtml||bar())+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span>${tag}${cardTools(c)}</div>${body}</article>`;
+  on('#home',home); on('#undo',undo);
+  const am=AM; AM=null; wireTools(am||next);
 }
+let AM=null; // ماذا يحدث بعد «أعرفها أكيد» في الوضع الحالي
 function next(){
   const q=queue();
   if(!q.length){
-    // لا شيء مستحق الآن؛ إن بقيت بطاقات تتعلمها بعد دقائق نعرض أقربها
     const soon=pool().filter(c=>st[c.id]?.t==='l').sort((a,b)=>st[a.id].due-st[b.id].due)[0];
     if(soon) return show(soon);
     return home();
@@ -251,77 +348,330 @@ function show(c){
   if(s.t==='r') return flip(c,'<span class="tag">مراجعة</span>');
   [explain,mcq,recall,write][s.step](c);
 }
-// ضع البطاقة في مرحلة تعلّم، وتعود بعد دقائق (بعد بطاقات أخرى)
-function learn(c,step,delay){ st[c.id]={t:'l',step,due:Date.now()+(delay??2*MIN),lapses:(st[c.id]?.lapses||0),u:Date.now()}; save(); }
-function graduate(c,iv){ const s=st[c.id]||{}; st[c.id]={t:'r',iv,ease:s.ease||2.5,due:Math.min(Date.now()+iv*DAY,EXAM-DAY/2),reps:(s.reps||0)+1,u:Date.now()}; save(); }
+function learn(c,step,delay){ const o=st[c.id]||{}; st[c.id]={t:'l',step,due:Date.now()+(delay??2*MIN),lapses:(o.lapses||0),bad:o.bad||0,u:Date.now()}; save(); }
+function graduate(c,iv){ const s=st[c.id]||{}; st[c.id]={t:'r',iv,ease:s.ease||2.5,due:Math.min(Date.now()+iv*DAY,EXAM-DAY/2),reps:(s.reps||0)+1,bad:s.bad||0,u:Date.now()}; save(); }
+const sAct=(c,isNew)=>snap(c,()=>{ if(isNew) sessNew=Math.max(0,sessNew-1); show(c); });
 
-// بطاقة جديدة أو مراجعة: السؤال ← الجواب ← أزرار Anki
 function flip(c,tag,isNew){
   frame(c,tag,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.n?`<div class="x">${esc(c.n)}</div>`:''}</div>
     <div class="acts" id="acts"><button class="main" id="show">اكشف الجواب</button></div>`);
-  app.querySelector('#show').onclick=()=>{
-    app.querySelector('#ans').hidden=false; if(isNew) sessNew++;
+  on('#show',()=>{
+    $('#ans').hidden=false; if(isNew) sessNew++;
     const s=st[c.id], iv=s?.iv||0, ease=s?.ease||2.5;
     const hard=s?Math.max(1,Math.round(iv*1.2)):1, good=s?Math.max(iv+1,Math.round(iv*ease)):1, easy=s?Math.max(good+1,Math.round(iv*ease*1.3)):3;
-    app.querySelector('#acts').className='acts four';
-    app.querySelector('#acts').innerHTML=`<button class="again" id="b0">ما عرفتها<small>أتعلّمها</small></button>
+    $('#acts').className='acts four';
+    $('#acts').innerHTML=`<button class="again" id="b0">ما عرفتها<small>أتعلّمها</small></button>
       <button class="hard" id="b1">صعبة<small>${fmt(hard*DAY)}</small></button>
       <button class="good" id="b2">عرفتها<small>${fmt(good*DAY)}</small></button>
-      <button class="easy" id="b3">سهلة<small>${fmt(easy*DAY)}</small></button>`;
-    app.querySelector('#b0').onclick=()=>{learn(c,0,0);next();};
-    app.querySelector('#b1').onclick=()=>{graduate(c,hard);st[c.id].ease=Math.max(1.3,ease-.15);save();next();};
-    app.querySelector('#b2').onclick=()=>{graduate(c,good);next();};
-    app.querySelector('#b3').onclick=()=>{graduate(c,easy);st[c.id].ease=ease+.15;save();next();};
-  };
+      <button class="easy" id="b3">سهلة<small>${fmt(easy*DAY)}</small></button>`+swipeHint;
+    const no=()=>{sAct(c,isNew);learn(c,0,0);miss(c);next();};
+    const yes=()=>{sAct(c,isNew);graduate(c,good);tick(true);next();};
+    on('#b0',no);
+    on('#b1',()=>{sAct(c,isNew);graduate(c,hard);st[c.id].ease=Math.max(1.3,ease-.15);save();tick(true);next();});
+    on('#b2',yes);
+    on('#b3',()=>{sAct(c,isNew);graduate(c,easy);st[c.id].ease=ease+.15;save();tick(true);next();});
+    SW={yes,no};
+  });
 }
-const stepTag=i=>`<span class="tag s${i}">${i+1}/4 · ${STEPS[i]}</span>`;
-// ١) الشرح
+const stepTag=i=>`<span class="tag s${i}">${i+1}/${skipW()?3:4} · ${STEPS[i]}</span>`;
 function explain(c){
   frame(c,stepTag(0),`<p class="q">${esc(c.q)}</p><div class="a">${esc(c.a)}</div>
     ${c.ex?`<div class="ex"><b>الشرح: </b>${esc(c.ex)}</div>`:''}${c.mn?`<div class="mn">للحفظ: ${esc(c.mn)}</div>`:''}${c.n?`<div class="x">${esc(c.n)}</div>`:''}
     <div class="acts"><button class="main" id="ok">فهمتها</button></div>`);
-  app.querySelector('#ok').onclick=()=>{learn(c,1);next();};
+  on('#ok',()=>{sAct(c);learn(c,1);tick(null);next();});
 }
-// ٢) اختيار من متعدد
 function mcq(c){
   if(!c.w||c.w.length<3){learn(c,2,0);return next();}
   const right=c.ca||c.a, opts=shuffle([right,...c.w]);
   frame(c,stepTag(1),`<p class="q">${esc(c.q)}</p><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><div class="acts" id="acts"></div>`);
-  app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+  $$('.opt').forEach(b=>b.onclick=()=>{
     const ok=opts[+b.dataset.i]===right;
-    app.querySelectorAll('.opt').forEach(x=>{x.disabled=true; if(opts[+x.dataset.i]===right) x.classList.add('right');});
+    $$('.opt').forEach(x=>{x.disabled=true; if(opts[+x.dataset.i]===right) x.classList.add('right');});
     if(!ok) b.classList.add('wrong');
-    app.querySelector('#acts').innerHTML=`<button class="main" id="nx">${ok?'صح، التالي':'راجع الشرح مرة ثانية'}</button>`;
-    app.querySelector('#nx').onclick=()=>{ ok?learn(c,2):learn(c,0,MIN); next(); };
+    $('#acts').innerHTML=`<button class="main" id="nx">${ok?'صح، التالي':'راجع الشرح مرة ثانية'}</button>`;
+    on('#nx',()=>{ sAct(c); if(ok){learn(c,2);tick(true);} else {learn(c,0,MIN);miss(c);} next(); });
   });
 }
-// ٣) من حفظك
 function recall(c){
   frame(c,stepTag(2),`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div>
     <div class="acts" id="acts"><button class="main" id="show">جاوب في راسك ثم اكشف</button></div>`);
-  app.querySelector('#show').onclick=()=>{
-    app.querySelector('#ans').hidden=false;
-    const a=app.querySelector('#acts'); a.className='acts two';
-    a.innerHTML=`<button class="again" id="no">ما عرفتها</button><button class="good" id="yes">عرفتها</button>`;
-    a.querySelector('#no').onclick=()=>{learn(c,1,MIN);next();};
-    a.querySelector('#yes').onclick=()=>{learn(c,3);next();};
-  };
+  on('#show',()=>{
+    $('#ans').hidden=false;
+    const a=$('#acts'); a.className='acts two';
+    a.innerHTML=`<button class="again" id="no">ما عرفتها</button><button class="good" id="yes">عرفتها</button>`+swipeHint;
+    const no=()=>{sAct(c);learn(c,1,MIN);miss(c);next();};
+    const yes=()=>{sAct(c); if(skipW()) graduate(c,1); else learn(c,3); tick(true); next();};
+    on('#no',no); on('#yes',yes); SW={yes,no};
+  });
 }
-// ٤) اكتبها
 const words=t=>String(t).replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').split(/[^ء-ي0-9]+/).filter(w=>w.length>2);
 function write(c){
+  if(skipW()){ graduate(c,1); return next(); }
   frame(c,stepTag(3),`<p class="q">${esc(c.q)}</p><label for="w-${c.id}" class="x">اكتب الجواب من حفظك:</label><textarea id="w-${c.id}"></textarea>
     <div id="ans" hidden></div><div class="acts" id="acts"><button class="main" id="cmp">قارن بالجواب</button></div>`);
-  app.querySelector('#cmp').onclick=()=>{
-    const mine=new Set(words(app.querySelector('textarea').value)), need=[...new Set(words(c.a))];
+  on('#cmp',()=>{
+    const mine=new Set(words($('textarea').value)), need=[...new Set(words(c.a))];
     const hit=need.filter(w=>mine.has(w)).length, pct=need.length?Math.round(100*hit/need.length):0;
-    const box=app.querySelector('#ans'); box.hidden=false;
+    const box=$('#ans'); box.hidden=false;
     box.innerHTML=`<div class="a">${esc(c.a)}</div><p class="score">كلماتك طابقت ${pct}% من كلمات الجواب</p>`;
-    const a=app.querySelector('#acts'); a.className='acts two';
+    const a=$('#acts'); a.className='acts two';
     a.innerHTML=`<button class="again" id="no">ما كتبتها صح</button><button class="good" id="yes">كتبتها صح</button>`;
-    a.querySelector('#no').onclick=()=>{learn(c,2,MIN);next();};
-    a.querySelector('#yes').onclick=()=>{graduate(c,1);next();};
-  };
+    on('#no',()=>{sAct(c);learn(c,2,MIN);miss(c);next();});
+    on('#yes',()=>{sAct(c);graduate(c,1);tick(true);next();});
+  });
 }
+
+// ===== صح أو خطأ (يُستعمل في المراجعة والاختبارات) =====
+function tfItem(c){ const truth=!c.w||c.w.length<1||Math.random()<.5; return {truth, shown: truth?(c.ca||c.a):c.w[Math.floor(Math.random()*c.w.length)]}; }
+
+// ===== المراجعة الحرة: تحتاج «عرفتها» مرتين متتاليتين، وبعدها تنجز وتتأجل أيام =====
+const seen=()=>{const e=EOD(); return pool().filter(c=>{const s=st[c.id]; return s&&(s.t==='l'||s.due<=e);});};
+const NEED=2, MAXSEEN=4;
+const weak=c=>{const s=st[c.id]; return s.t==='l'?-100+(s.step||0):(s.iv||0)-(s.bad||0)*2;};
+let cq=[], cdone=0, cleft=0, cshown={}, ctot=0, ctitle='مراجعة حرة', cback=null;
+function cram(list,title,back){
+  const L=list||seen();
+  cq=shuffle(L.slice()).sort((a,b)=>(st[a.id]?weak(a):-50)-(st[b.id]?weak(b):-50)).slice(0,20);
+  ctot=cq.length; cdone=0; cleft=0; cshown={}; ctitle=title||'مراجعة حرة'; cback=back||null; sessionStart=Date.now(); U.length=0; cramNext();
+}
+function cramNext(){ if(!cq.length) return cramDone(); cramShow(); }
+function cramBar(){ return `<div class="bar"><span class="cnt"><b style="color:var(--accent)">أنجزت ${cdone}/${ctot}</b></span><span>${esc(ctitle)}</span>${undoBtn()}<button class="link" id="home">إنهاء</button></div>`; }
+function cramFrame(c,body){ const k=st[c.id]?.ok||0; AM=()=>{cq.shift();cramNext();};
+  frame(c,`<span class="tag">${'●'.repeat(k)+'○'.repeat(NEED-k)} باقي ${NEED-k} وتنجز</span>`,body,cramBar()); }
+function cramDone(){
+  const rest=cback?0:seen().length;
+  app.innerHTML=`<div class="home"><h1>${cdone?'أحسنت!':'خلصت المراجعة'}</h1><div class="stats" style="grid-template-columns:1fr 1fr"><div class="c-rev"><b>${cdone}</b><span>أنجزتها وتأجلت أيام</span></div><div class="c-learn"><b>${cleft}</b><span>باقية تتعلمها</span></div></div>
+    ${rest?`<button class="big" id="again">كمّل (${rest} باقية)</button>`:(cback?'':'<p class="note" style="font-size:1.05rem;color:var(--accent);font-weight:700">ما عليك شي الحين ✓ كل اللي درسته متأجل</p>')}
+    <button class="big alt" id="back">${cback?'رجوع':'الرئيسية'}</button>
+    <p class="note">كل بطاقة تقول فيها «عرفتها» مرتين ورا بعض تنجز وما ترجع إلا بعد أيام. واللي تغلط فيها ترجع من الصفر.</p></div>`;
+  on('#again',()=>cram()); on('#back',cback||home);
+}
+function cramRes(c,ok){
+  const saved={cq:cq.slice(),cdone,cleft,cshown:Object.assign({},cshown)};
+  snap(c,()=>{cq=saved.cq;cdone=saved.cdone;cleft=saved.cleft;cshown=saved.cshown;cramShow();});
+  cq.shift(); cshown[c.id]=(cshown[c.id]||0)+1;
+  if(ok){
+    tick(true);
+    if(!st[c.id]) learn(c,0,0);
+    const k=(st[c.id].ok||0)+1;
+    if(k>=NEED){ const s=st[c.id]; graduate(c, s.t==='r'?Math.max((s.iv||1)+1,Math.round((s.iv||1)*(s.ease||2.5))):2); cdone++; return cramNext(); }
+    st[c.id].ok=k; st[c.id].u=Date.now(); save();
+  } else { learn(c,0,0); st[c.id].ok=0; miss(c); }
+  if(cshown[c.id]<MAXSEEN) cq.splice(Math.min(cq.length,3),0,c); else cleft++;
+  cramNext();
+}
+function cramShow(){
+  const c=cq[0], r=Math.random(), hasW=c.w&&c.w.length>=3;
+  if(hasW&&r<.35){
+    const right=c.ca||c.a, opts=shuffle([right,...c.w]);
+    cramFrame(c,`<p class="q">${esc(c.q)}</p><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><div class="acts" id="acts"></div>`);
+    $$('.opt').forEach(b=>b.onclick=()=>{
+      const ok=opts[+b.dataset.i]===right;
+      $$('.opt').forEach(x=>{x.disabled=true; if(opts[+x.dataset.i]===right) x.classList.add('right');});
+      if(!ok) b.classList.add('wrong');
+      $('#acts').innerHTML=`<button class="main" id="nx">${ok?'صح، التالي':'التالي'}</button>`;
+      on('#nx',()=>cramRes(c,ok));
+    });
+  } else if(hasW&&r<.6){
+    const t=tfItem(c);
+    cramFrame(c,`<p class="q">${esc(c.q)}</p><p class="lbl">هل هذا الجواب صحيح؟</p><div class="tfbox">${esc(t.shown)}</div><div id="ans" hidden></div>
+      <div class="acts two" id="acts"><button class="good" id="tt">صح</button><button class="again" id="ff">خطأ</button></div>`);
+    const ans=pick=>{ const ok=pick===t.truth; $('#ans').hidden=false;
+      $('#ans').innerHTML=`<p class="score" style="color:var(${ok?'--accent':'--bad'})">${ok?'إجابتك صحيحة':'إجابتك غلط'}</p><div class="a">${esc(c.a)}</div>`;
+      const a=$('#acts'); a.className='acts'; a.innerHTML=`<button class="main" id="nx">التالي</button>`; on('#nx',()=>cramRes(c,ok)); };
+    on('#tt',()=>ans(true)); on('#ff',()=>ans(false));
+  } else {
+    cramFrame(c,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div>
+      <div class="acts" id="acts"><button class="main" id="show">جاوب في راسك ثم اكشف</button></div>`);
+    on('#show',()=>{
+      $('#ans').hidden=false;
+      const a=$('#acts'); a.className='acts two';
+      a.innerHTML=`<button class="again" id="no">ما عرفتها</button><button class="good" id="yes">عرفتها</button>`+swipeHint;
+      const no=()=>cramRes(c,false), yes=()=>cramRes(c,true);
+      on('#no',no); on('#yes',yes); SW={yes,no};
+    });
+  }
+}
+
+// ===== صفحات عامة =====
+function page(title,body,back){
+  SW=null; stopSpeech();
+  app.innerHTML=`<div class="page"><button class="link back" id="pb">→ ${back?'رجوع':'الرئيسية'}</button><h1>${title}</h1>${body}</div>`;
+  on('#pb',back||home);
+}
+function rows(list,showA){
+  if(!list.length) return '<p class="note">ما فيه بطاقات هنا.</p>';
+  return `<div class="list">${list.map(c=>{const b=st[c.id]?.bad||0;
+    return `<div class="row"><div class="rq">${esc(c.q)}</div><div class="ra" ${showA?'':'hidden'} id="ra-${c.id}">${esc(c.a)}</div>
+    <div class="rt"><span>${esc(c.b)}</span>${b?`<span class="badb">غلطت ${b}×</span>`:''}${muted(c)?'<span>مكتومة</span>':''}
+      <button data-show="${c.id}">${showA?'أخفِ الجواب':'الجواب'}</button><button data-star="${c.id}">${X.star[c.id]?'★':'☆'}</button>
+      <button data-tmute="${c.id}">${muted(c)?'رجّعها':'أعرفها أكيد'}</button></div></div>`;}).join('')}</div>`;
+}
+function wireRows(redraw){
+  $$('[data-show]').forEach(b=>b.onclick=()=>{const e=$('#ra-'+b.dataset.show); e.hidden=!e.hidden; b.textContent=e.hidden?'الجواب':'أخفِ الجواب';});
+  $$('[data-star]').forEach(b=>b.onclick=()=>{const id=b.dataset.star; if(X.star[id]) delete X.star[id]; else X.star[id]=1; saveX(); b.textContent=X.star[id]?'★':'☆';});
+  $$('[data-tmute]').forEach(b=>b.onclick=()=>{const id=b.dataset.tmute; if(X.mute[id]) delete X.mute[id]; else X.mute[id]=1; saveX(); redraw&&redraw();});
+}
+function hardPage(){
+  const list=deck.filter(c=>(st[c.id]?.bad||0)>0&&!muted(c)).sort((a,b)=>(st[b.id].bad||0)-(st[a.id].bad||0));
+  page('🔴 أصعب بطاقاتي',`${list.length?`<button class="big" id="q">اختبرني فيها (${Math.min(20,list.length)})</button>`:''}${rows(list)}`);
+  on('#q',()=>cram(list.slice(0,20),'أصعب بطاقاتي',hardPage)); wireRows(hardPage);
+}
+function starPage(){
+  const list=deck.filter(c=>X.star[c.id]);
+  page('⭐ المعلّمة بنجمة',`${list.length?`<button class="big" id="q">اختبرني فيها</button>`:'<p class="note">حط نجمة ☆ على أي بطاقة وتطلع لك هنا.</p>'}${rows(list)}`);
+  on('#q',()=>cram(list,'المعلّمة بنجمة',starPage)); wireRows(starPage);
+}
+const norm=t=>String(t).replace(/[ً-ْـ]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي');
+let lastQ='';
+function searchPage(){
+  page('🔍 بحث',`<input class="inp" id="sq" placeholder="اكتب كلمة، مثل: الخلع" value="${esc(lastQ)}"><div id="sr"></div>`);
+  const run=()=>{ lastQ=$('#sq').value.trim(); const n=norm(lastQ);
+    const list=n.length<2?[]:deck.filter(c=>norm(c.q+' '+c.a).includes(n));
+    $('#sr').innerHTML=n.length<2?'<p class="note">اكتب حرفين أو أكثر.</p>':`<p class="lbl">${list.length} نتيجة</p>`+rows(list.slice(0,60),true); wireRows(run); };
+  $('#sq').oninput=run; run(); $('#sq').focus();
+}
+function readPage(){
+  const ch=chap(), list=deck.filter(c=>!ch||c.b===ch);
+  page('📖 '+(ch||'كل الأبواب'),`<div class="chips" id="rc">${['',...chapters()].map(b=>`<button data-v="${esc(b)}" class="${ch===b?'on':''}">${esc(b||'الكل')}</button>`).join('')}</div>${rows(list,true)}`);
+  $$('#rc button').forEach(b=>b.onclick=()=>{S.set('ch:'+tr,b.dataset.v);readPage();}); wireRows(readPage);
+}
+function setPage(){
+  const mc=Object.keys(X.mute).length;
+  page('⚙️ الإعدادات',`<div class="set"><p class="lbl">الهدف اليومي (عدد الإجابات)</p><div class="chips" id="gl">${[20,40,60,100].map(n=>`<button data-n="${n}" class="${goal()===n?'on':''}">${n}</button>`).join('')}</div></div>
+    <div class="set"><label><input type="checkbox" id="sk" ${skipW()?'checked':''}> تخطّي خطوة «اكتبها»</label><p class="x" style="margin:0">التعلّم يصير 3 خطوات: الشرح، الاختيار، من حفظك.</p></div>
+    <div class="set"><p class="lbl">حجم الخط</p><div class="chips" id="fz">${[.9,1,1.15,1.3].map(n=>`<button data-n="${n}" class="${fs()===n?'on':''}">${n===1?'عادي':n<1?'أصغر':n<1.2?'كبير':'أكبر'}</button>`).join('')}</div></div>
+    <div class="set"><p class="lbl">البطاقات المكتومة («أعرفها أكيد»): ${mc}</p>${mc?'<button class="big alt small" id="um">اعرضها وتقدر ترجّعها</button>':''}</div>`);
+  $$('#gl button').forEach(b=>b.onclick=()=>{S.set('goal',+b.dataset.n);setPage();});
+  $$('#fz button').forEach(b=>b.onclick=()=>{S.set('fs',+b.dataset.n);applyFs();setPage();});
+  $('#sk').onchange=e=>S.set('skipW',e.target.checked);
+  on('#um',mutedPage);
+}
+function mutedPage(){ const list=deck.filter(muted); page('البطاقات المكتومة',rows(list),setPage); wireRows(mutedPage);
+}
+function progPage(){
+  const days=[...Array(7)].map((_,i)=>dkey(Date.now()-i*DAY)), L=X.log;
+  const ex=X.exams.slice(-8).reverse();
+  const chs=chapters().map(b=>{const cs=deck.filter(c=>c.b===b), d=cs.filter(c=>st[c.id]?.t==='r'||muted(c)).length; return [b,d,cs.length];});
+  page('📊 تقدمي وسجلّي',`<div class="pred"><div><span>توقّع درجتك تقريباً</span><br><span style="font-size:.78rem">محسوب من إنجازك في البطاقات وآخر اختبار تجريبي</span></div><div><b>${predict()}</b> <span>من 60</span></div></div>
+    <div class="goal"><span>🔥 <b>${streak()}</b> أيام متتالية حققت فيها الهدف (${goal()})</span></div>
+    <p class="lbl">آخر 7 أيام</p><div style="overflow-x:auto"><table class="tbl"><tr><th>اليوم</th><th>إجابات</th><th>صح</th><th>غلط</th><th>دقايق</th></tr>
+    ${days.map((d,i)=>{const x=L[d]||{n:0,ok:0,bad:0,sec:0}; return `<tr><td>${i===0?'اليوم':i===1?'أمس':d.slice(5)}</td><td>${x.n}</td><td>${x.ok}</td><td>${x.bad}</td><td>${Math.round(x.sec/60)}</td></tr>`;}).join('')}</table></div>
+    <p class="lbl">الأبواب</p><div class="chaps">${chs.map(([b,d,n])=>`<button disabled><span>${esc(b)}${X.mastered[b]?' <b class="ms">✓ أتقنته</b>':''}</span><div class="meter"><i style="width:${Math.round(100*d/n)}%"></i></div><small>${d}/${n}</small></button>`).join('')}</div>
+    <p class="lbl">الاختبارات</p>${ex.length?`<div style="overflow-x:auto"><table class="tbl"><tr><th>التاريخ</th><th>النوع</th><th>الدرجة</th></tr>${ex.map(e=>`<tr><td>${e.d.slice(5)}</td><td>${esc(e.k)}</td><td>${e.score}/${e.total}</td></tr>`).join('')}</table></div>`:'<p class="note">ما سويت اختبار للحين.</p>'}`);
+}
+
+// ===== الاختبارات: تجريبي 60 سؤال، واختبار الباب 15 =====
+let EX=null, exTimer=0;
+function buildExam(n,from){
+  const by={}; for(const c of from) (by[c.b]=by[c.b]||[]).push(c);
+  const tot=from.length, out=[];
+  for(const b in by){ const k=Math.max(1,Math.round(n*by[b].length/tot)); out.push(...shuffle(by[b].slice()).slice(0,k)); }
+  if(out.length<n){ const have=new Set(out.map(c=>c.id)); out.push(...shuffle(from.filter(c=>!have.has(c.id))).slice(0,n-out.length)); }
+  return shuffle(out).slice(0,n).map(c=>{ const hasW=c.w&&c.w.length>=3;
+    if(hasW&&Math.random()<.6){ const right=c.ca||c.a; return {c,type:'mcq',opts:shuffle([right,...c.w]),right}; }
+    if(hasW) return {c,type:'tf',...tfItem(c)};
+    return {c,type:'tf',truth:true,shown:c.ca||c.a}; });
+}
+function mockIntro(){
+  page('📝 اختبار تجريبي',`<p class="note" style="text-align:right">60 سؤال عشوائي من كل الأبواب بنفس نسبة كل باب، اختيار من متعدد وصح أو خطأ. عندك 60 دقيقة. ما تشوف الصح والغلط إلا في الأخير، مثل الاختبار الحقيقي.</p><button class="big" id="st">ابدأ الاختبار</button>`);
+  on('#st',()=>startExam(buildExam(60,deck),'تجريبي',60));
+}
+function chapExamIntro(){
+  const ch=chap();
+  page('🎯 اختبار الباب',`<p class="note" style="text-align:right">15 سؤال من الباب اللي تختاره. إذا جبت 90% أو أكثر ينكتب عليه «✓ أتقنته».</p>
+    <div class="chaps" id="ce">${chapters().map(b=>`<button data-v="${esc(b)}" class="${ch===b?'on':''}"><span>${esc(b)}${X.mastered[b]?' <b class="ms">✓</b>':''}</span><span></span><small>${deck.filter(c=>c.b===b).length} سؤال</small></button>`).join('')}</div>`);
+  $$('#ce button').forEach(b=>b.onclick=()=>{ const v=b.dataset.v; startExam(buildExam(Math.min(15,deck.filter(c=>c.b===v).length),deck.filter(c=>c.b===v)),'باب: '+v,15,v); });
+}
+function startExam(items,kind,mins,chapName){
+  EX={items,i:0,ans:[],kind,chapName,start:Date.now(),end:Date.now()+mins*MIN};
+  clearInterval(exTimer); exTimer=setInterval(()=>{ const t=$('#clock'); if(!EX){clearInterval(exTimer);return;} const ms=EX.end-Date.now(); if(ms<=0){clearInterval(exTimer);finishExam();return;} if(t) t.textContent=Math.floor(ms/MIN)+':'+String(Math.floor(ms%MIN/1000)).padStart(2,'0'); },1000);
+  examShow();
+}
+function examShow(){
+  SW=null; const it=EX.items[EX.i], c=it.c, ms=EX.end-Date.now();
+  const top=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${EX.i+1}/${EX.items.length}</b></span><span id="clock">${Math.floor(ms/MIN)}:${String(Math.floor(ms%MIN/1000)).padStart(2,'0')}</span><button class="link" id="fin">سلّم الاختبار</button></div>`;
+  const body=it.type==='mcq'?`<p class="q">${esc(c.q)}</p><div class="opts">${it.opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div>`
+    :`<p class="q">${esc(c.q)}</p><p class="lbl">هل هذا الجواب صحيح؟</p><div class="tfbox">${esc(it.shown)}</div><div class="acts two"><button class="good" data-t="1">صح</button><button class="again" data-t="0">خطأ</button></div>`;
+  app.innerHTML=top+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span><span class="tag">${it.type==='mcq'?'اختيار':'صح أو خطأ'}</span></div>${body}</article>`;
+  const answer=ok=>{ EX.ans[EX.i]=ok; EX.i++; EX.i<EX.items.length?examShow():finishExam(); };
+  $$('.opt').forEach(b=>b.onclick=()=>answer(it.opts[+b.dataset.i]===it.right));
+  $$('[data-t]').forEach(b=>b.onclick=()=>answer((b.dataset.t==='1')===it.truth));
+  on('#fin',finishExam);
+}
+function finishExam(){
+  if(!EX) return; clearInterval(exTimer);
+  const E=EX; EX=null; const total=E.items.length, score=E.ans.filter(Boolean).length, mins=Math.round((Date.now()-E.start)/MIN);
+  const wrong=E.items.filter((it,i)=>E.ans[i]===false), skipped=E.items.filter((it,i)=>E.ans[i]===undefined).length;
+  for(const it of wrong){ const c=it.c; if(!st[c.id]||st[c.id].t==='r') learn(c,0,0); miss(c); }
+  for(let i=0;i<total;i++) if(E.ans[i]===true) tick(true);
+  X.exams.push({d:dkey(),k:E.kind,score,total,done:total-skipped}); if(X.exams.length>30) X.exams.shift();
+  const pct=Math.round(100*score/total), mastered=E.chapName&&pct>=90;
+  if(mastered) X.mastered[E.chapName]=dkey();
+  saveX();
+  page(E.chapName?'نتيجة اختبار الباب':'نتيجة الاختبار التجريبي',`<div class="stats" style="grid-template-columns:1fr 1fr 1fr"><div class="c-rev"><b>${score}/${total}</b><span>درجتك</span></div><div class="c-new"><b>${pct}%</b><span>النسبة</span></div><div class="c-done"><b>${mins}</b><span>دقيقة</span></div></div>
+    ${mastered?'<div class="banner ok">✓ أتقنت باب '+esc(E.chapName)+'</div>':E.chapName?'<div class="banner">تحتاج 90% عشان تتقن الباب. الغلط رجع لقائمة «تتعلمها».</div>':''}
+    ${skipped?`<p class="note">ما جاوبت ${skipped} سؤال، وانحسبت بدون درجة.</p>`:''}
+    ${wrong.length?`<p class="lbl">أخطاؤك (${wrong.length}) — رجعت لقائمة «تتعلمها»</p><button class="big alt small" id="rq">اختبرني في أخطائي الحين</button>`+rows(wrong.map(it=>it.c),true):'<div class="banner ok">ما غلطت ولا سؤال!</div>'}`);
+  wireRows(); on('#rq',()=>cram(wrong.map(it=>it.c).slice(0,20),'أخطاء الاختبار'));
+}
+
+// ===== ليلة الاختبار: كل البطاقات بسرعة، سؤال وجواب =====
+function night(){
+  let N=S.get('night:'+tr,null);
+  const ids=new Set(pool().map(c=>c.id));
+  if(N&&N.i<N.ids.length){
+    page('🌙 ليلة الاختبار',`<p class="note" style="text-align:right">عندك جولة ما خلصت: ${N.i}/${N.ids.length}.</p><button class="big" id="ct">كمّل من مكانك</button><button class="big alt" id="nw">ابدأ جولة جديدة</button>`);
+    on('#ct',()=>nightShow()); on('#nw',()=>{S.set('night:'+tr,null);night();}); return;
+  }
+  page('🌙 ليلة الاختبار',`<p class="note" style="text-align:right">تمر على كل بطاقات «${esc(chap()||'كل الأبواب')}» (${ids.size} بطاقة) بسرعة: تشوف السؤال، تكشف الجواب، وتقول عرفتها أو لا. اللي ما تعرفها ترجع لـ«تتعلمها». اللي تعرفها ما يتغير موعدها.</p><button class="big" id="st">ابدأ</button>`);
+  on('#st',()=>{S.set('night:'+tr,{ids:shuffle([...ids]),i:0,bad:0});nightShow();});
+}
+function nightShow(){
+  const N=S.get('night:'+tr,null); if(!N) return home();
+  if(N.i>=N.ids.length){ page('🌙 خلصت الجولة!',`<div class="stats" style="grid-template-columns:1fr 1fr"><div class="c-rev"><b>${N.ids.length-N.bad}</b><span>عرفتها</span></div><div class="c-learn"><b>${N.bad}</b><span>رجعت للتعلّم</span></div></div>${N.bad?'<button class="big" id="go2">راجع اللي ما عرفتها</button>':''}`); on('#go2',()=>cram()); S.set('night:'+tr,null); return; }
+  const c=deck.find(x=>x.id===N.ids[N.i]); if(!c){N.i++;S.set('night:'+tr,N);return nightShow();}
+  const nb=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${N.i+1}/${N.ids.length}</b><span>غلط ${N.bad}</span></span><span>ليلة الاختبار</span><button class="link" id="home">إيقاف</button></div>`;
+  AM=()=>{const M=S.get('night:'+tr,N); M.i++; S.set('night:'+tr,M); nightShow();};
+  frame(c,'',`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div><div class="acts" id="acts"><button class="main" id="show">اكشف</button></div>`,nb);
+  const go=ok=>{ const M=S.get('night:'+tr,N); if(!ok){ learn(c,0,0); miss(c); M.bad++; } else tick(true); M.i++; S.set('night:'+tr,M); nightShow(); };
+  on('#show',()=>{ $('#ans').hidden=false; const a=$('#acts'); a.className='acts two';
+    a.innerHTML=`<button class="again" id="no">ما عرفتها</button><button class="good" id="yes">عرفتها</button>`+swipeHint;
+    const no=()=>go(false), yes=()=>go(true); on('#no',no); on('#yes',yes); SW={yes,no}; });
+}
+
+// ===== وضع الاستماع =====
+let LS=null;
+function stopSpeech(){ if(LS){LS.stop=true;LS=null;} try{speechSynthesis.cancel();}catch(e){} }
+function listenIntro(){
+  const ok='speechSynthesis' in window;
+  page('🎧 وضع الاستماع',ok?`<p class="note" style="text-align:right">يقرا لك السؤال، ويعطيك ثواني تجاوب في راسك، وبعدها يقرا الجواب. يمشي على «${esc(chap()||'كل الأبواب')}». ينفعك وأنت سايق أو تمشي. خل الصفحة مفتوحة والشاشة شغالة.</p>
+    <div class="set"><p class="lbl">وقت التفكير قبل الجواب</p><div class="chips" id="gap">${[3,5,8].map(n=>`<button data-n="${n}" class="${S.get('gap',5)===n?'on':''}">${n} ثواني</button>`).join('')}</div></div>
+    <button class="big" id="st">ابدأ الاستماع</button>`:'<p class="note">جهازك أو المتصفح ما يدعم القراءة بالصوت.</p>');
+  $$('#gap button').forEach(b=>b.onclick=()=>{S.set('gap',+b.dataset.n);listenIntro();});
+  on('#st',()=>listenRun());
+}
+function speak(t){ return new Promise(res=>{ try{ const u=new SpeechSynthesisUtterance(t); u.lang='ar-SA'; const v=speechSynthesis.getVoices().find(v=>/^ar/i.test(v.lang)); if(v) u.voice=v; u.rate=.95; u.onend=res; u.onerror=res; speechSynthesis.speak(u); }catch(e){res();} }); }
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function listenRun(){
+  stopSpeech(); const me={stop:false,paused:false,skip:false}; LS=me;
+  try{ navigator.wakeLock?.request('screen').catch(()=>{}); }catch(e){}
+  const list=shuffle(pool().slice()); let i=0;
+  const render=(c,phase)=>{ app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${i+1}/${list.length}</b></span><span>🎧 استماع</span><button class="link" id="home">إنهاء</button></div>
+    <article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span></div><p class="q">${esc(c.q)}</p><div class="a" ${phase?'':'hidden'}>${esc(c.a)}</div>
+    <div class="acts two"><button id="pz">${me.paused?'▶ كمّل':'⏸ إيقاف مؤقت'}</button><button id="sk">التالي ⟵</button></div></article>`;
+    on('#home',()=>{stopSpeech();home();}); on('#pz',()=>{me.paused=!me.paused; if(me.paused) speechSynthesis.cancel(); render(c,phase);}); on('#sk',()=>{me.skip=true;speechSynthesis.cancel();}); };
+  while(!me.stop&&i<list.length){
+    const c=list[i]; me.skip=false;
+    render(c,0); await speak(c.q); if(me.stop) return;
+    for(let t=0;t<S.get('gap',5)*10&&!me.skip&&!me.stop;t++) await wait(100);
+    while(me.paused&&!me.stop) await wait(200);
+    if(!me.skip){ render(c,1); await speak('الجواب: '+c.a); await wait(1200); }
+    while(me.paused&&!me.stop) await wait(200);
+    if(me.stop) return; i++;
+  }
+  if(!me.stop) home();
+}
+applyFs();
 load();
 </script>
