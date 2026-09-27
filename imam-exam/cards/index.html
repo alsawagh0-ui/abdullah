@@ -150,7 +150,7 @@ function home(){
     <p class="lbl">بطاقات جديدة في الجلسة <span style="font-weight:400">(باقي في هذا الباب ${k.n} جديدة)</span></p>
     <div class="chips" id="lims">${[10,20,30,50].map(n=>`<button data-n="${n}" class="${lim()===n?'on':''}">${n}</button>`).join('')}</div>
     <button class="big" id="go">${k.l+k.r+k.n?'ابدأ'+(k.n?' · '+Math.min(k.n,lim())+' جديدة':''):'لا شيء الآن'}</button>
-    ${seen().length?`<button class="big alt" id="cram">اختبر نفسك في اللي درسته (${seen().length})</button>`:''}
+    ${seen().length?`<button class="big alt" id="cram">اختبر نفسك في اللي درسته (${seen().length})</button>`:(pool().some(c=>st[c.id])?'<p class="note" style="color:var(--accent);font-weight:700">كل اللي درسته منجز ومتأجل ✓</p>':'')}
     <p class="note">باقي ${left} يوم على الاختبار. اختبر نفسك قدر ما تبي: اللي ما تعرفه يمر بالشرح ثم الاختيار ثم الحفظ ثم الكتابة، واللي تعرفه يتأجل. تقدر توقف متى ما تبي، وترجع تكمل من مكانك.</p>
     <p class="sync">${syncTxt()}</p>
     <button class="link" id="sw">تغيير المسار</button></div>`;
@@ -160,25 +160,42 @@ function home(){
   app.querySelector('#sw').onclick=()=>{tr=null;S.set('track',null);pick();};
   const cb=app.querySelector('#cram'); if(cb) cb.onclick=cram;
 }
-// مراجعة حرة: كل البطاقات اللي مرّت عليك في الباب المختار، الأضعف أولاً، متى ما تبي وبدون ما تنتظر موعدها
-const seen=()=>pool().filter(c=>st[c.id]);
+// مراجعة حرة: اللي تتعلمها + مراجعات اليوم فقط. كل بطاقة تحتاج «عرفتها» مرتين متتاليتين، وبعدها تنجز وتتأجل أيام
+const EOD=()=>{const d=new Date(); d.setHours(23,59,59,999); return d.getTime();};
+const seen=()=>{const e=EOD(); return pool().filter(c=>{const s=st[c.id]; return s&&(s.t==='l'||s.due<=e);});};
+const NEED=2, MAXSEEN=4;
 const weak=c=>{const s=st[c.id]; return s.t==='l'?-100+(s.step||0):(s.iv||0)-(s.lapses||0)*2;};
-let cq=[], ci=0, cok=0;
+let cq=[], cdone=0, cleft=0, cshown={}, ctot=0;
 function cram(){
-  const all=seen(); const byW=shuffle(all.slice()).sort((a,b)=>weak(a)-weak(b));
-  cq=byW.slice(0,20); ci=0; cok=0; sessionStart=Date.now(); cramShow();
+  cq=shuffle(seen()).sort((a,b)=>weak(a)-weak(b)).slice(0,20);
+  ctot=cq.length; cdone=0; cleft=0; cshown={}; sessionStart=Date.now(); cramNext();
 }
-function cramBar(){ return `<div class="bar"><span class="cnt"><b style="color:var(--accent)">${ci+1}/${cq.length}</b><span>صح ${cok}</span></span><span>مراجعة حرة</span><button class="link" id="home">إنهاء</button></div>`; }
-function cramFrame(c,body){ app.innerHTML=cramBar()+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span></div>${body}</article>`; app.querySelector('#home').onclick=home; }
+function cramNext(){ if(!cq.length) return cramDone(); cramShow(); }
+function cramBar(){ return `<div class="bar"><span class="cnt"><b style="color:var(--accent)">أنجزت ${cdone}/${ctot}</b></span><span>مراجعة حرة</span><button class="link" id="home">إنهاء</button></div>`; }
+function cramFrame(c,body){ const s=st[c.id], k=s.ok||0;
+  app.innerHTML=cramBar()+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span><span class="tag">${'●'.repeat(k)+'○'.repeat(NEED-k)} باقي ${NEED-k} وتنجز</span></div>${body}</article>`;
+  app.querySelector('#home').onclick=home; }
 function cramDone(){
-  app.innerHTML=`<div class="home"><h1>خلصت المراجعة</h1><div class="stats" style="grid-template-columns:1fr 1fr"><div class="c-rev"><b>${cok}</b><span>عرفتها</span></div><div class="c-learn"><b>${cq.length-cok}</b><span>رجعت للتعلّم</span></div></div>
-    <button class="big" id="again">مراجعة ثانية</button><button class="big alt" id="back">الرئيسية</button>
-    <p class="note">اللي ما عرفتها رجعت لقائمة «تتعلمها» وبتطلع لك أول ما تضغط «ابدأ».</p></div>`;
-  app.querySelector('#again').onclick=cram; app.querySelector('#back').onclick=home;
+  const rest=seen().length;
+  app.innerHTML=`<div class="home"><h1>${cdone?'أحسنت!':'خلصت المراجعة'}</h1><div class="stats" style="grid-template-columns:1fr 1fr"><div class="c-rev"><b>${cdone}</b><span>أنجزتها وتأجلت أيام</span></div><div class="c-learn"><b>${cleft}</b><span>باقية تتعلمها</span></div></div>
+    ${rest?`<button class="big" id="again">كمّل (${rest} باقية)</button>`:'<p class="note" style="font-size:1.05rem;color:var(--accent);font-weight:700">ما عليك شي الحين ✓ كل اللي درسته متأجل</p>'}
+    <button class="big alt" id="back">الرئيسية</button>
+    <p class="note">كل بطاقة تقول فيها «عرفتها» مرتين ورا بعض تنجز وما ترجع إلا بعد أيام. واللي تغلط فيها ترجع من الصفر.</p></div>`;
+  const ag=app.querySelector('#again'); if(ag) ag.onclick=cram; app.querySelector('#back').onclick=home;
 }
-function cramRes(c,ok){ if(ok) cok++; else learn(c,0,0); ci++; ci<cq.length?cramShow():cramDone(); }
+function cramRes(c,ok){
+  cq.shift(); cshown[c.id]=(cshown[c.id]||0)+1;
+  if(ok){
+    const k=(st[c.id].ok||0)+1;
+    if(k>=NEED){ const s=st[c.id]; graduate(c, s.t==='r'?Math.max((s.iv||1)+1,Math.round((s.iv||1)*(s.ease||2.5))):2); cdone++; return cramNext(); }
+    st[c.id].ok=k; st[c.id].u=Date.now(); save();
+  } else { learn(c,0,0); st[c.id].ok=0; save(); }
+  // ترجع في نفس الجولة بعد بطاقتين أو ثلاث
+  if(cshown[c.id]<MAXSEEN) cq.splice(Math.min(cq.length,3),0,c); else cleft++;
+  cramNext();
+}
 function cramShow(){
-  const c=cq[ci];
+  const c=cq[0];
   if(c.w&&c.w.length>=3&&Math.random()<.5){
     const right=c.ca||c.a, opts=shuffle([right,...c.w]);
     cramFrame(c,`<p class="q">${esc(c.q)}</p><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><div class="acts" id="acts"></div>`);
