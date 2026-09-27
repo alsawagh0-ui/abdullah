@@ -82,7 +82,14 @@ for f in sorted((SH / "content").glob("c_*.json")):
         })
 content.sort(key=lambda k: rank({"b": k["b"]}))
 tpl = (D / "template.html").read_text(encoding="utf-8")
+clips = []
+for f in sorted((SH).glob("h40_clips_[ab].json")):
+    for c in json.loads(f.read_text(encoding="utf-8")):
+        clips.append({"n": c["n"], "pts": [{"t": p["t"]} for p in c.get("pts", [])], "how": c.get("how", ""), "mn": c.get("mn", ""),
+                      "ask": [{"q": q["q"], "a": q["a"], "w": q["w"][:3]} for q in c.get("ask", []) if len(q.get("w", [])) >= 3]})
+clips.sort(key=lambda c: c["n"])
 tpl = tpl.replace("/*MARKS*/{}", json.dumps(MARKS))
+tpl = tpl.replace("/*CLIPS*/[]", json.dumps(clips, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 tpl = tpl.replace("/*CONTENT*/[]", json.dumps(content, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 out = tpl.replace("/*CARDS*/[]", json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 (D / "index.html").write_text(out, encoding="utf-8")

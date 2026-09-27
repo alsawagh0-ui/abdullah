@@ -136,6 +136,39 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 .node ul{margin:4px 0 0;padding-inline-start:18px;line-height:1.9}
 .pg{font-size:.72rem;color:var(--muted);font-weight:400}
 .rule{padding:12px 14px;border-radius:10px;border-inline-start:4px solid var(--accent);background:var(--soft);font-weight:600;line-height:1.8}
+.story{position:relative;display:flex;flex-direction:column;gap:14px;min-height:calc(100vh - 120px);background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 18px 22px;overflow:hidden}
+.segs{display:flex;gap:4px}
+.segs i{flex:1;height:4px;border-radius:9px;background:var(--line);overflow:hidden}
+.segs i b{display:block;height:100%;width:0;background:var(--accent)}
+.segs i.done b{width:100%}
+.segs i.now b{animation:seg var(--dur,7s) linear forwards}
+.story.paused .segs i.now b{animation-play-state:paused}
+@keyframes seg{to{width:100%}}
+.story .num{font-size:.8rem;font-weight:700;color:var(--muted)}
+.story .hd{font-family:"Noto Naskh Arabic",serif;font-size:1.55em;line-height:1.8;font-weight:600;text-wrap:balance}
+.story .who{display:grid;gap:8px}
+.story .who div{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.story .who span{font-size:.8rem;color:var(--muted);min-width:52px}
+.story .who b{font-size:1.15em}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-weight:700;font-size:.95em}
+.pill.both{background:var(--soft);color:var(--accent)} .pill.bk{background:var(--blue-soft);color:var(--blue)} .pill.ms{background:var(--warn-soft);color:var(--warn)} .pill.ot{background:var(--bad-soft);color:var(--bad)}
+.story ul{margin:0;padding-inline-start:20px;display:grid;gap:10px;line-height:1.9;font-size:1.08em}
+.story .mnb{padding:12px 14px;border-radius:12px;background:var(--soft);color:var(--accent);font-weight:700;line-height:1.8}
+.story .tap{position:absolute;top:60px;bottom:90px;width:35%;z-index:1}
+.story .tap.l{left:0} .story .tap.r{right:0}
+.story .ctl{margin-top:auto;display:flex;gap:8px;justify-content:space-between;align-items:center;position:relative;z-index:2}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.cgrid button{padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-align:right;display:grid;gap:4px;line-height:1.5}
+.cgrid button b{color:var(--accent);font-size:.8rem}
+.cgrid button.seen{border-color:var(--accent);background:var(--soft)}
+.bins{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bins button{padding:16px 8px;border-radius:12px;font-weight:700;font-size:1.05rem;border:2px solid var(--line);background:var(--surface);color:var(--ink)}
+.match{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.match div{display:grid;gap:8px;align-content:start}
+.match button{padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-align:right;line-height:1.5;min-height:52px}
+.match button.sel{border-color:var(--accent);background:var(--soft)}
+.match button.ok{opacity:.35;border-color:var(--accent)}
+.match button.no{border-color:var(--bad);background:var(--bad-soft)}
 .big.small{font-size:1rem;padding:13px}
 </style>
 
@@ -145,6 +178,7 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 const CARDS=/*CARDS*/[];
 const CONTENT=/*CONTENT*/[];
 const MARKS=/*MARKS*/{};
+const CLIPS=/*CLIPS*/[];
 const SUBJ={fiqh:'الفقه',hadith:'الحديث',aqeedah:'العقيدة',nahw:'النحو',tajweed:'التجويد',tafsir:'التفسير',mithaq:'ميثاق المسجد'};
 const EXAM=new Date('2026-10-06T00:00:00+03:00').getTime(), MIN=6e4, DAY=864e5;
 const STEPS=['اشرح','اختر','من حفظك','اكتبها'];
@@ -319,7 +353,8 @@ function home(){
       ${CONTENT.length?`<button id="t-und" style="grid-column:1/-1;border-color:var(--blue)">🌳 فهم الباب<small>شجرة الباب، القواعد الجامعة، الأخطاء الشائعة</small></button>
       <button id="t-cases">🧑‍⚖️ حالات عملية<small>${CONTENT.reduce((a,k)=>a+k.cases.length,0)} حالة</small></button>
       <button id="t-traps">⚠️ الأخطاء الشائعة<small>صح ولا خطأ؟</small></button>`:''}
-      ${deck.some(c=>c.id==='h1r')?'<button id="t-h40" style="grid-column:1/-1;border-color:var(--accent)">📜 الأربعون النووية<small>الراوي، ومن أخرجه، وكم روى كل صحابي</small></button>':''}
+      ${CLIPS.length?'<button id="t-clips" style="grid-column:1/-1;border-color:var(--accent);background:var(--soft)">🎬 مقاطع الأربعين<small>كل حديث في دقيقة: الشرح، وكيف يُسأل، وسؤالين</small></button>':''}
+      ${deck.some(c=>c.id==='h1r')?'<button id="t-h40">📜 جدول الأربعين<small>الراوي ومن أخرجه</small></button><button id="t-mem">🧠 حفظ الرواة والمخرّجين<small>طريقة + ألعاب سريعة</small></button>':''}
       <button id="t-daily">⏱️ اختبار اليوم<small>10 أسئلة في 5 دقايق</small></button>
       <button id="t-sim">🔀 المتشابهات<small>شرط ولا ركن ولا واجب؟</small></button>
       <button id="t-lists">🧩 القوائم خطوة خطوة<small>العدد ثم العناصر</small></button>
@@ -352,7 +387,7 @@ function home(){
   on('#t-mock',()=>mockIntro()); on('#t-cexam',()=>chapExamIntro()); on('#t-night',()=>night());
   on('#t-listen',()=>listenIntro()); on('#t-hard',()=>hardPage()); on('#t-star',()=>starPage());
   on('#t-search',()=>searchPage()); on('#t-read',()=>readPage()); on('#t-prog',()=>progPage()); on('#t-set',()=>setPage());
-  on('#t-und',()=>undPage()); on('#t-h40',()=>h40Page()); on('#t-cases',()=>casesIntro()); on('#t-traps',()=>trapsQuiz());
+  on('#t-und',()=>undPage()); on('#t-h40',()=>h40Page()); on('#t-clips',()=>clipsPage()); on('#t-mem',()=>memPage()); on('#t-cases',()=>casesIntro()); on('#t-traps',()=>trapsQuiz());
   on('#t-place',()=>placeIntro()); on('#t-place2',()=>placeIntro()); on('#t-daily',()=>dailyIntro()); on('#t-sim',()=>simPage()); on('#t-lists',()=>listsIntro()); on('#t-nums',()=>numsPage()); on('#t-map',()=>page('🗺️ خريطة الإنجاز',mapGrid()+'<p class="note">الأحمر يعني ضعيف، والأخضر يعني متقن. ابدأ بالأحمر اللي حجمه كبير.</p>'));
 }
 
@@ -890,6 +925,102 @@ function h40Page(){
   on('#q2',()=>cram(H.filter(c=>c.b==='الأربعون: من أخرجه'),'من أخرجه؟',h40Page));
   on('#q3',()=>cram(H.filter(c=>c.b==='الأربعون: الرواة والعدد'),'الرواة والعدد',h40Page));
   on('#q4',()=>cram(H,'الأربعون',h40Page));
+}
+// ===== مقاطع الأربعين: قصص قصيرة لكل حديث =====
+const xcat=x=>x==='البخاري ومسلم'?'both':x==='البخاري'?'bk':x==='مسلم'?'ms':'ot';
+const XLAB={both:'البخاري ومسلم',bk:'البخاري وحده',ms:'مسلم وحده',ot:'غيرهما'};
+const hrow=n=>h40Rows().find(r=>r.n===n);
+function clipsPage(){
+  const seenC=X.clips||{};
+  page('🎬 مقاطع الأربعين',`<p class="note" style="text-align:right">كل حديث مقطع قصير: الحديث وراويه ومن أخرجه، ثم الشرح المختصر من شرح ابن دقيق العيد، ثم كيف يُسأل في الاختبار، ثم سؤالين تجاوبهم. اضغط يمين أو يسار الشاشة للتنقل، واضغط 🔊 عشان يقرا لك.</p>
+    <button class="big" id="all">▶ شغّل من أول حديث ما شفته</button>
+    <div class="cgrid">${CLIPS.map(c=>{const r=hrow(c.n);return `<button data-n="${c.n}" class="${seenC[c.n]?'seen':''}"><b>${c.n}${seenC[c.n]?' ✓':''}</b>${esc(r?r.start:'')}</button>`;}).join('')}</div>`);
+  $$('.cgrid button').forEach(b=>b.onclick=()=>clipPlay(+b.dataset.n,0));
+  on('#all',()=>{ const c=CLIPS.find(c=>!seenC[c.n])||CLIPS[0]; clipPlay(c.n,0,true); });
+}
+let CT=0, CSPK=S.get('cspk',false);
+function clipSlides(c){
+  const r=hrow(c.n), cat=xcat(r?.rec||'');
+  const sl=[{k:'head',dur:9,say:`الحديث ${c.n}. ${r?.start}. الراوي: ${r?.rawi}. أخرجه: ${r?.rec}.`,
+      html:`<div class="num">الحديث ${c.n} من 42</div><div class="hd">«${esc(r?.start)}»</div>
+      <div class="who"><div><span>الراوي</span><b>${esc(r?.rawi)}</b></div><div><span>أخرجه</span><b class="pill ${cat}">${esc(r?.rec)}</b></div></div>
+      ${c.mn?`<div class="mnb">🧠 للحفظ: ${esc(c.mn)}</div>`:''}`}];
+  if(c.pts?.length) sl.push({k:'pts',dur:Math.max(8,c.pts.length*4),say:'الشرح. '+c.pts.map(p=>p.t).join('. '),html:`<div class="num">الشرح المختصر (ابن دقيق العيد)</div><ul>${c.pts.map(p=>`<li>${esc(p.t)}</li>`).join('')}</ul>`});
+  if(c.how) sl.push({k:'how',dur:6,say:'كيف يسأل في الاختبار؟ '+c.how,html:`<div class="num">كيف يُسأل في الاختبار؟</div><div class="hd" style="font-size:1.25em">${esc(c.how)}</div>`});
+  (c.ask||[]).forEach((q,i)=>sl.push({k:'q',q,dur:0,say:q.q,html:''}));
+  return sl;
+}
+function clipPlay(n,i,chain){
+  stopSpeech(); clearTimeout(CT); SW=null;
+  const c=CLIPS.find(x=>x.n===n); if(!c) return clipsPage();
+  const sl=clipSlides(c);
+  if(i>=sl.length){ X.clips=X.clips||{}; X.clips[n]=1; saveX(); const nx=CLIPS.find(x=>x.n>n); if(chain&&nx) return clipPlay(nx.n,0,true);
+    return page('🎬 خلص المقطع',`<div class="banner ok">خلصت الحديث ${n} ✓</div>${nx?`<button class="big" id="nx">الحديث التالي (${nx.n}) ▶</button>`:''}<button class="big alt" id="bk">كل المقاطع</button>`,clipsPage), on('#nx',()=>clipPlay(nx.n,0,chain)), on('#bk',clipsPage); }
+  if(i<0) return clipPlay(n,0,chain);
+  const s=sl[i], segs=sl.map((_,j)=>`<i class="${j<i?'done':j===i?'now':''}"><b></b></i>`).join('');
+  let body=s.html;
+  if(s.k==='q'){ const opts=shuffle([s.q.a,...s.q.w]); s.opts=opts;
+    body=`<div class="num">سؤال بصيغة الاختبار</div><div class="hd" style="font-size:1.2em">${esc(s.q.q)}</div><div class="opts">${opts.map((o,j)=>`<button class="opt" data-i="${j}">${esc(o)}</button>`).join('')}</div><div id="ans"></div>`; }
+  app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">🎬 ${n}/42</b></span><span></span><button class="link" id="home">إنهاء</button></div>
+    <div class="story" style="--dur:${s.dur||7}s"><div class="segs">${segs}</div>${s.k!=='q'?'<div class="tap l" id="tl"></div><div class="tap r" id="tr2"></div>':''}${body}
+    <div class="ctl"><button class="ibtn" id="pv">→ السابق</button><button class="ibtn" id="spk">${CSPK?'🔊':'🔈'}</button><button class="ibtn" id="ps">⏸</button><button class="ibtn" id="nx">التالي ←</button></div></div>`;
+  on('#home',()=>{clearTimeout(CT);stopSpeech();clipsPage();});
+  const go=d=>{clearTimeout(CT);stopSpeech();clipPlay(n,i+d,chain);};
+  on('#nx',()=>go(1)); on('#pv',()=>go(-1)); on('#tl',()=>go(1)); on('#tr2',()=>go(-1));
+  on('#spk',()=>{CSPK=!CSPK;S.set('cspk',CSPK); if(!CSPK) stopSpeech(); else speak(s.say); $('#spk').textContent=CSPK?'🔊':'🔈';});
+  let paused=false; on('#ps',()=>{ paused=!paused; $('.story').classList.toggle('paused',paused); $('#ps').textContent=paused?'▶':'⏸'; if(paused) clearTimeout(CT); else if(s.dur) CT=setTimeout(()=>go(1),s.dur*500); });
+  SW={yes:()=>go(-1),no:()=>go(1)};
+  if(CSPK){ try{speechSynthesis.cancel();}catch(e){} speak(s.say); }
+  if(s.k==='q'){ $$('.opt').forEach(b=>b.onclick=()=>{ const good=s.opts[+b.dataset.i]===s.q.a;
+      $$('.opt').forEach(o=>{o.disabled=true; if(s.opts[+o.dataset.i]===s.q.a) o.classList.add('right');}); if(!good) b.classList.add('wrong');
+      tick(good); $('#ans').innerHTML=`<p class="score" style="color:var(${good?'--accent':'--bad'})">${good?'صح ✓':'الجواب: '+esc(s.q.a)}</p>`; });
+  } else CT=setTimeout(()=>go(1),(s.dur||7)*1000);
+}
+// ===== حفظ الرواة والمخرّجين: طريقة + ألعاب =====
+function memPage(){
+  const R=h40Rows(), by={both:[],bk:[],ms:[],ot:[]}; R.forEach(r=>by[xcat(r.rec)].push(r));
+  const nar={}; deck.filter(c=>c.b==='الأربعون: الرواة والعدد'&&/^كم حديثاً رواه/.test(c.q)).forEach(c=>{ nar[c.q.replace(/^كم حديثاً رواه (.+?) في.+$/,'$1')]=c; });
+  const li=rs=>rs.map(r=>`<li><b>${r.n}</b> ${esc(r.start)}${xcat(r.rec)==='ot'?` <span class="x">← ${esc(r.rec)}</span>`:''}</li>`).join('');
+  page('🧠 حفظ الرواة والمخرّجين',`
+    <div class="set"><b>الخطوة 1: من أخرجه؟ احفظ القاعدة والاستثناءات بس</b>
+      <p class="x" style="margin:0;color:var(--ink)">القاعدة: الأصل <span class="pill both">البخاري ومسلم</span> (${by.both.length} حديث). ما تحتاج تحفظها، احفظ الاستثناءات:</p>
+      <p style="margin:0"><span class="pill bk">البخاري وحده (${by.bk.length})</span></p><ul>${li(by.bk)}</ul>
+      <div class="mnb">🧠 جملة البخاري: «لا تغضب، واستحِ، تكن ولياً غريباً»</div>
+      <p style="margin:0"><span class="pill ms">مسلم وحده (${by.ms.length})</span></p><ul>${li(by.ms)}</ul>
+      <p style="margin:0"><span class="pill ot">غير الصحيحين (${by.ot.length})</span> احفظ معها اسم من أخرجها:</p><ul>${li(by.ot)}</ul>
+      <button class="big small" id="g1">🎮 لعبة: وين تحط الحديث؟</button></div>
+    <div class="set"><b>الخطوة 2: الرواة، احفظ أصحاب الأحاديث الكثيرة أول</b>
+      ${Object.entries(nar).map(([k,c])=>`<div><p class="lbl" style="color:var(--accent)">${esc(k)}: ${esc(c.ca||'')}</p><p class="x" style="margin:2px 0 0;color:var(--ink)">${esc(c.a.replace(/^[^:]+:\s*/,''))}</p></div>`).join('')}
+      <p class="x" style="margin:0">والباقي كل صحابي له حديث واحد، وتلقاه في «مقاطع الأربعين» مع جملة للحفظ.</p>
+      <button class="big small" id="g2">🎮 لعبة التوصيل: الحديث ↔ الراوي</button></div>
+    <div class="set"><b>الخطوة 3: ثبّتها بالتكرار</b><p class="x" style="margin:0">العب كل لعبة مرتين في اليوم، وبعدها سو «جدول الأربعين ← خلطهم كلهم».</p>
+      <button class="big alt small" id="g3">📜 جدول الأربعين</button></div>`);
+  on('#g1',()=>binGame(shuffle(R.slice()).slice(0,15),0,0)); on('#g2',()=>matchGame(0,0)); on('#g3',h40Page);
+}
+function binGame(Q,i,ok){
+  if(i>=Q.length){ page('🎮 النتيجة',`<div class="banner ${ok>=Q.length*.8?'ok':''}">جبت ${ok} من ${Q.length}</div><button class="big" id="again">مرة ثانية</button>`,memPage); on('#again',()=>binGame(shuffle(h40Rows()).slice(0,15),0,0)); return; }
+  const r=Q[i], cat=xcat(r.rec); SW=null;
+  app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${i+1}/${Q.length}</b><span>صح ${ok}</span></span><span>من أخرجه؟</span><button class="link" id="home">إنهاء</button></div>
+    <article class="card"><div class="num" style="color:var(--muted);font-size:.8rem">الحديث ${r.n}</div><p class="q" style="font-family:'Noto Naskh Arabic',serif">«${esc(r.start)}»</p><p class="lbl">وين تحطه؟</p>
+    <div class="bins">${Object.entries(XLAB).map(([k,t])=>`<button data-k="${k}" class="pill ${k}">${t}</button>`).join('')}</div><div id="ans"></div><div class="acts" id="acts"></div></article>`;
+  on('#home',memPage);
+  $$('.bins button').forEach(b=>b.onclick=()=>{ const good=b.dataset.k===cat; $$('.bins button').forEach(x=>{x.disabled=true; if(x.dataset.k===cat) x.style.outline='3px solid var(--accent)';});
+    tick(good); $('#ans').innerHTML=`<p class="score" style="color:var(${good?'--accent':'--bad'})">${good?'صح ✓':'غلط'} — أخرجه: ${esc(r.rec)} · الراوي: ${esc(r.rawi)}</p>`;
+    $('#acts').innerHTML='<button class="main" id="nx">التالي</button>'; on('#nx',()=>binGame(Q,i+1,ok+(good?1:0))); });
+}
+function matchGame(round,score){
+  const R=shuffle(h40Rows().filter(r=>r.n!==18&&r.n!==27)); const pick=[]; const used=new Set();
+  for(const r of R){ if(used.has(r.rawi)) continue; used.add(r.rawi); pick.push(r); if(pick.length===5) break; }
+  const L=shuffle(pick.slice()), Rt=shuffle(pick.slice()); let sel=null, done=0, miss=0;
+  app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">جولة ${round+1}</b><span>النقاط ${score}</span></span><span>التوصيل</span><button class="link" id="home">إنهاء</button></div>
+    <article class="card"><p class="lbl">اضغط حديث، وبعدين راويه</p><div class="match"><div>${L.map(r=>`<button data-h="${r.n}">${esc(r.start)}</button>`).join('')}</div><div>${Rt.map(r=>`<button data-r="${r.n}"><b>${esc(r.rawi)}</b></button>`).join('')}</div></div><div id="ans"></div><div class="acts" id="acts"></div></article>`;
+  on('#home',memPage);
+  $$('[data-h]').forEach(b=>b.onclick=()=>{ if(b.classList.contains('ok')) return; $$('[data-h]').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); sel=b; });
+  $$('[data-r]').forEach(b=>b.onclick=()=>{ if(!sel||b.classList.contains('ok')) return;
+    const a=+sel.dataset.h, r=hrow(a), good=r.rawi===hrow(+b.dataset.r).rawi;
+    if(good){ sel.classList.remove('sel'); sel.classList.add('ok'); b.classList.add('ok'); done++; tick(true); sel=null;
+      if(done===5){ const pts=Math.max(0,5-miss); $('#ans').innerHTML=`<p class="score" style="color:var(--accent)">ممتاز! ${miss?`غلطت ${miss} ${miss<3?(miss===1?"مرة":"مرتين"):"مرات"}`:'بدون ولا غلطة'}</p>`; $('#acts').innerHTML='<button class="main" id="nx">جولة ثانية</button>'; on('#nx',()=>matchGame(round+1,score+pts)); } }
+    else { miss++; tick(false); b.classList.add('no'); setTimeout(()=>b.classList.remove('no'),600); } });
 }
 // ===== تحديد المستوى: اللي تجاوبه صح يتأجل مباشرة =====
 function placeIntro(){
