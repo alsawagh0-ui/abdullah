@@ -76,6 +76,7 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 .chips button small{color:var(--muted);font-variant-numeric:tabular-nums}
 .chips button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .chips button.on small{color:var(--accent-ink);opacity:.8}
+.big.alt{background:var(--surface);color:var(--accent);border:1.5px solid var(--accent);font-size:1.1rem;padding:15px}
 .lbl{margin:0;font-size:.85rem;font-weight:600;color:var(--muted)}
 .sync{margin:0;font-size:.78rem;color:var(--muted);text-align:center}
 @media (max-width:380px){.acts.four{grid-template-columns:1fr 1fr}}
@@ -149,6 +150,7 @@ function home(){
     <p class="lbl">بطاقات جديدة في الجلسة <span style="font-weight:400">(باقي في هذا الباب ${k.n} جديدة)</span></p>
     <div class="chips" id="lims">${[10,20,30,50].map(n=>`<button data-n="${n}" class="${lim()===n?'on':''}">${n}</button>`).join('')}</div>
     <button class="big" id="go">${k.l+k.r+k.n?'ابدأ'+(k.n?' · '+Math.min(k.n,lim())+' جديدة':''):'لا شيء الآن'}</button>
+    ${seen().length?`<button class="big alt" id="cram">اختبر نفسك في اللي درسته (${seen().length})</button>`:''}
     <p class="note">باقي ${left} يوم على الاختبار. اختبر نفسك قدر ما تبي: اللي ما تعرفه يمر بالشرح ثم الاختيار ثم الحفظ ثم الكتابة، واللي تعرفه يتأجل. تقدر توقف متى ما تبي، وترجع تكمل من مكانك.</p>
     <p class="sync">${syncTxt()}</p>
     <button class="link" id="sw">تغيير المسار</button></div>`;
@@ -156,6 +158,48 @@ function home(){
   app.querySelectorAll('#lims button').forEach(b=>b.onclick=()=>{S.set('lim',+b.dataset.n);home();});
   app.querySelector('#go').onclick=()=>{sessionStart=Date.now();sessNew=0;next();};
   app.querySelector('#sw').onclick=()=>{tr=null;S.set('track',null);pick();};
+  const cb=app.querySelector('#cram'); if(cb) cb.onclick=cram;
+}
+// مراجعة حرة: كل البطاقات اللي مرّت عليك في الباب المختار، الأضعف أولاً، متى ما تبي وبدون ما تنتظر موعدها
+const seen=()=>pool().filter(c=>st[c.id]);
+const weak=c=>{const s=st[c.id]; return s.t==='l'?-100+(s.step||0):(s.iv||0)-(s.lapses||0)*2;};
+let cq=[], ci=0, cok=0;
+function cram(){
+  const all=seen(); const byW=shuffle(all.slice()).sort((a,b)=>weak(a)-weak(b));
+  cq=byW.slice(0,20); ci=0; cok=0; sessionStart=Date.now(); cramShow();
+}
+function cramBar(){ return `<div class="bar"><span class="cnt"><b style="color:var(--accent)">${ci+1}/${cq.length}</b><span>صح ${cok}</span></span><span>مراجعة حرة</span><button class="link" id="home">إنهاء</button></div>`; }
+function cramFrame(c,body){ app.innerHTML=cramBar()+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span></div>${body}</article>`; app.querySelector('#home').onclick=home; }
+function cramDone(){
+  app.innerHTML=`<div class="home"><h1>خلصت المراجعة</h1><div class="stats" style="grid-template-columns:1fr 1fr"><div class="c-rev"><b>${cok}</b><span>عرفتها</span></div><div class="c-learn"><b>${cq.length-cok}</b><span>رجعت للتعلّم</span></div></div>
+    <button class="big" id="again">مراجعة ثانية</button><button class="big alt" id="back">الرئيسية</button>
+    <p class="note">اللي ما عرفتها رجعت لقائمة «تتعلمها» وبتطلع لك أول ما تضغط «ابدأ».</p></div>`;
+  app.querySelector('#again').onclick=cram; app.querySelector('#back').onclick=home;
+}
+function cramRes(c,ok){ if(ok) cok++; else learn(c,0,0); ci++; ci<cq.length?cramShow():cramDone(); }
+function cramShow(){
+  const c=cq[ci];
+  if(c.w&&c.w.length>=3&&Math.random()<.5){
+    const right=c.ca||c.a, opts=shuffle([right,...c.w]);
+    cramFrame(c,`<p class="q">${esc(c.q)}</p><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><div class="acts" id="acts"></div>`);
+    app.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+      const ok=opts[+b.dataset.i]===right;
+      app.querySelectorAll('.opt').forEach(x=>{x.disabled=true; if(opts[+x.dataset.i]===right) x.classList.add('right');});
+      if(!ok) b.classList.add('wrong');
+      app.querySelector('#acts').innerHTML=`<button class="main" id="nx">${ok?'صح، التالي':'التالي'}</button>`;
+      app.querySelector('#nx').onclick=()=>cramRes(c,ok);
+    });
+  } else {
+    cramFrame(c,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div>
+      <div class="acts" id="acts"><button class="main" id="show">جاوب في راسك ثم اكشف</button></div>`);
+    app.querySelector('#show').onclick=()=>{
+      app.querySelector('#ans').hidden=false;
+      const a=app.querySelector('#acts'); a.className='acts two';
+      a.innerHTML=`<button class="again" id="no">ما عرفتها</button><button class="good" id="yes">عرفتها</button>`;
+      a.querySelector('#no').onclick=()=>cramRes(c,false);
+      a.querySelector('#yes').onclick=()=>cramRes(c,true);
+    };
+  }
 }
 // الترتيب: ما يتعلمه (حان وقته) ← المراجعة المستحقة ← الجديد
 function queue(){
