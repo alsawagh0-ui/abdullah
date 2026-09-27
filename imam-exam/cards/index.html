@@ -121,6 +121,12 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 .set label{display:flex;gap:10px;align-items:center;font-weight:600}
 .tfbox{padding:12px 14px;border-radius:10px;border:1px dashed var(--accent);font-family:"Noto Naskh Arabic",serif;font-size:1.12em;line-height:1.9}
 .swipehint{text-align:center;font-size:.78rem;color:var(--muted);margin:0}
+.mapg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.mapg div{border-radius:10px;padding:12px;color:#fff;display:grid;gap:2px}
+.mapg b{font-size:.92rem} .mapg small{opacity:.9;font-variant-numeric:tabular-nums}
+.spark{display:flex;align-items:flex-end;gap:6px;height:110px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.spark div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px}
+.spark i{width:100%;border-radius:4px 4px 0 0;display:block} .spark small{font-size:.7rem;color:var(--muted)}
 .big.small{font-size:1rem;padding:13px}
 </style>
 
@@ -173,7 +179,18 @@ function push(now){
 const syncTxt=()=>synced?'تقدمك محفوظ في حسابك ✓':'تقدمك محفوظ على هذا الجهاز';
 
 // ===== الإعدادات =====
-const lim=()=>S.get('lim',20);
+const lim=()=>S.get('lim','auto');
+const PASS=48, FINAL=3;
+const daysLeft=()=>Math.max(0,Math.ceil((EXAM-Date.now())/DAY));
+const newToday=()=>X.log[dkey()]?.nw||0;
+function plan(){ // كم بطاقة جديدة اليوم حتى تخلص كل شي قبل آخر 3 أيام
+  const rem=deck.filter(c=>!muted(c)&&!st[c.id]).length, dl=daysLeft(), studyDays=dl-FINAL;
+  if(studyDays<=0) return {today:0,left:0,rem,final:true};
+  const today=Math.ceil((rem+newToday())/studyDays);
+  return {today,left:Math.max(0,today-newToday()),rem,final:false};
+}
+const newLeft=()=>lim()==='auto'?plan().left:Math.max(0,lim()-sessNew);
+const limTxt=()=>lim()==='auto'?plan().today:lim();
 const goal=()=>S.get('goal',40);
 const skipW=()=>S.get('skipW',false);
 const fs=()=>S.get('fs',1);
@@ -229,6 +246,18 @@ function predict(){
   return Math.round(v);
 }
 
+const cardP=c=>{ const s=st[c.id]; let p; if(muted(c)) p=.95; else if(!s) p=.15; else if(s.t==='l') p=.45+(s.step||0)*.05; else p=(s.iv||0)>=3?.92:.82; return Math.max(.1,p-Math.min(.3,(s?.bad||0)*.03)); };
+function passBox(){
+  const v=predict(), gain=.67*60/Math.max(1,deck.length), need=Math.max(0,Math.ceil((PASS-v)/gain));
+  const pct=Math.min(100,Math.round(100*v/60));
+  return `<div class="set"><div class="topline"><span class="lbl" style="margin:0">عداد النجاح</span><span><b style="font-size:1.4rem;color:var(${v>=PASS?'--accent':'--ink'})">${v}</b> <span class="x">من 60 · النجاح ${PASS}</span></span></div>
+    <div class="meter" style="position:relative;height:10px"><i style="width:${pct}%;background:var(${v>=PASS?'--accent':'--warn'})"></i><b style="position:absolute;top:-3px;bottom:-3px;inset-inline-start:80%;width:2px;background:var(--ink)"></b></div>
+    <p class="x" style="margin:0">${v>=PASS?'أنت فوق خط النجاح تقريباً ✓ ثبّت اللي عندك.':`باقي لك تقريباً <b>${PASS-v}</b> درجة، يعني تقريباً <b>${need}</b> بطاقة تتقنها.`}</p></div>`;
+}
+function mapGrid(){
+  return `<div class="mapg">${chapters().map(b=>{const cs=deck.filter(c=>c.b===b), p=cs.reduce((a,c)=>a+cardP(c),0)/cs.length, t=Math.max(0,Math.min(1,(p-.15)/.77)), h=Math.round(t*130);
+    return `<div style="background:hsl(${h} 55% 42%)"><b>${esc(b)}</b><small>${Math.round(100*t)}%${X.mastered[b]?' ✓':''}</small></div>`;}).join('')}</div>`;
+}
 // ===== الصفحة الرئيسية =====
 function counts(P=pool()){
   const now=Date.now(); let n=0,l=0,r=0,d=0;
@@ -252,21 +281,30 @@ function home(){
   app.innerHTML=`<div class="home">
     <div class="topline"><h1>بطاقات الفقه · ${tr==='imam'?'إمام':'مؤذن'}</h1><div class="fsz"><button id="fsm">A−</button><button id="fsp">A+</button></div></div>
     ${di.due?`<div class="banner">عندك ${di.due} بطاقة مستحقة الحين</div>`:(isFinite(di.nextT)?`<div class="banner ok">ما عليك مراجعة الحين ✓ الجاية بعد ${fmtIn(di.nextT-Date.now())}</div>`:'')}
+    ${(()=>{const pl=plan(); return pl.final?'<div class="banner">🔒 آخر 3 أيام: ما فيه بطاقات جديدة، ثبّت اللي درسته بالمراجعة والاختبارات.</div>'
+      :`<div class="banner ok">📅 خطة اليوم: <b>${pl.today}</b> بطاقة جديدة (خلصت ${newToday()}) + المراجعات. باقي ${pl.rem} جديدة على ${daysLeft()-FINAL} يوم.</div>`;})()}
+    ${passBox()}
     <div class="goal"><span>هدف اليوم: <b>${Math.min(today.n,g)}/${g}</b></span><span>🔥 <b>${sk}</b> ${sk===1?'يوم':'أيام'} متتالية</span><span>باقي <b>${left}</b> يوم</span></div>
     <div class="meter"><i style="width:${Math.min(100,Math.round(100*today.n/g))}%"></i></div>
-    <div class="stats"><div class="c-new"><b>${Math.min(k.n,lim())}</b><span>جديدة الحين</span></div><div class="c-learn"><b>${k.l}</b><span>تتعلمها</span></div>
+    <div class="stats"><div class="c-new"><b>${Math.min(k.n,newLeft())}</b><span>جديدة الحين</span></div><div class="c-learn"><b>${k.l}</b><span>تتعلمها</span></div>
       <div class="c-rev"><b>${k.r}</b><span>مراجعة اليوم</span></div><div class="c-done"><b>${k.d}</b><span>مؤجلة</span></div></div>
     <p class="lbl">نوع البطاقات</p>
     <div class="chips" id="flts">${[['all','الكل'],['num','الأرقام بس'],['star','⭐ المعلّمة'],['hard','الأصعب']].map(([v,t])=>`<button data-f="${v}" class="${fl===v?'on':''}">${t}</button>`).join('')}</div>
     <p class="lbl">الباب</p>
     <div class="chaps" id="chs">${row('','كل الأبواب',deck.filter(c=>!muted(c)||1))}${chs.map(b=>row(b,b,deck.filter(c=>c.b===b))).join('')}</div>
     <p class="lbl">بطاقات جديدة في الجلسة <span style="font-weight:400">(باقي ${k.n} جديدة)</span></p>
-    <div class="chips" id="lims">${[10,20,30,50].map(n=>`<button data-n="${n}" class="${lim()===n?'on':''}">${n}</button>`).join('')}</div>
-    <button class="big" id="go">${k.l+k.r+k.n?'ابدأ'+(k.n?' · '+Math.min(k.n,lim())+' جديدة':''):'لا شيء الآن'}</button>
+    <div class="chips" id="lims"><button data-n="auto" class="${lim()==='auto'?'on':''}">تلقائي (${plan().today})</button>${[10,20,30,50].map(n=>`<button data-n="${n}" class="${lim()===n?'on':''}">${n}</button>`).join('')}</div>
+    <button class="big" id="go">${k.l+k.r+Math.min(k.n,newLeft())?'ابدأ'+(Math.min(k.n,newLeft())?' · '+Math.min(k.n,newLeft())+' جديدة':''):'لا شيء الآن'}</button>
     ${seen().length?`<button class="big alt" id="cram">اختبر نفسك في اللي درسته (${seen().length})</button>`:(pool().some(c=>st[c.id])?'<p class="note" style="color:var(--accent);font-weight:700">كل اللي درسته منجز ومتأجل ✓</p>':'')}
-    <div class="pred"><div><span>توقّع درجتك تقريباً</span></div><div><b>${predict()}</b> <span>من 60</span></div></div>
     <p class="lbl">أدوات</p>
     <div class="tools">
+      ${Object.values(st).length<30?'<button id="t-place" style="grid-column:1/-1;border-color:var(--accent)">🧭 اختبار تحديد المستوى<small>40 سؤال، اللي تعرفه يتأجل ويوفر عليك وقت</small></button>':''}
+      <button id="t-daily">⏱️ اختبار اليوم<small>10 أسئلة في 5 دقايق</small></button>
+      <button id="t-sim">🔀 المتشابهات<small>شرط ولا ركن ولا واجب؟</small></button>
+      <button id="t-lists">🧩 القوائم خطوة خطوة<small>العدد ثم العناصر</small></button>
+      <button id="t-nums">🔢 جدول الأرقام<small>كل المقادير في مكان</small></button>
+      <button id="t-map">🗺️ خريطة الإنجاز<small>وين نقاط ضعفك</small></button>
+      ${Object.values(st).length<30?'':'<button id="t-place2">🧭 تحديد المستوى<small>أعده متى ما تبي</small></button>'}
       <button id="t-mock">📝 اختبار تجريبي<small>60 سؤال بوقت</small></button>
       <button id="t-cexam">🎯 اختبار الباب<small>15 سؤال، 90% = أتقنته</small></button>
       <button id="t-night">🌙 ليلة الاختبار<small>كل البطاقات بسرعة</small></button>
@@ -285,13 +323,14 @@ function home(){
   on('#fsp',()=>{S.set('fs',Math.min(1.5,+(fs()+.1).toFixed(2)));applyFs();});
   $$('#chs button').forEach(b=>b.onclick=()=>{S.set('ch:'+tr,b.dataset.v);home();});
   $$('#flts button').forEach(b=>b.onclick=()=>{S.set('flt:'+tr,b.dataset.f);home();});
-  $$('#lims button').forEach(b=>b.onclick=()=>{S.set('lim',+b.dataset.n);home();});
+  $$('#lims button').forEach(b=>b.onclick=()=>{S.set('lim',b.dataset.n==='auto'?'auto':+b.dataset.n);home();});
   on('#go',()=>{sessionStart=Date.now();sessNew=0;next();});
   on('#cram',()=>cram());
   on('#sw',()=>{tr=null;S.set('track',null);pick();});
   on('#t-mock',()=>mockIntro()); on('#t-cexam',()=>chapExamIntro()); on('#t-night',()=>night());
   on('#t-listen',()=>listenIntro()); on('#t-hard',()=>hardPage()); on('#t-star',()=>starPage());
   on('#t-search',()=>searchPage()); on('#t-read',()=>readPage()); on('#t-prog',()=>progPage()); on('#t-set',()=>setPage());
+  on('#t-place',()=>placeIntro()); on('#t-place2',()=>placeIntro()); on('#t-daily',()=>dailyIntro()); on('#t-sim',()=>simPage()); on('#t-lists',()=>listsIntro()); on('#t-nums',()=>numsPage()); on('#t-map',()=>page('🗺️ خريطة الإنجاز',mapGrid()+'<p class="note">الأحمر يعني ضعيف، والأخضر يعني متقن. ابدأ بالأحمر اللي حجمه كبير.</p>'));
 }
 
 // ===== السحب بالإصبع: يمين = عرفتها، يسار = ما عرفتها =====
@@ -314,17 +353,29 @@ function wireTools(after){
   $$('[data-mute]').forEach(b=>b.onclick=()=>{X.mute[b.dataset.mute]=1; saveX(); after&&after();});
 }
 
+// ===== خلط الأبواب: الجديد يجيك من كل باب على قد حجمه =====
+const mix=()=>S.get('mix',true);
+function mixNew(N){
+  if(!mix()||chap()) return N;
+  const by={}, size={}, got={};
+  for(const c of deck){ size[c.b]=(size[c.b]||0)+1; if(st[c.id]||muted(c)) got[c.b]=(got[c.b]||0)+1; }
+  for(const c of N) (by[c.b]=by[c.b]||[]).push(c);
+  const out=[]; let left=N.length;
+  while(left){ let best=null,bv=Infinity; for(const b in by){ if(!by[b].length) continue; const v=(got[b]||0)/size[b]; if(v<bv){bv=v;best=b;} }
+    out.push(by[best].shift()); got[best]=(got[best]||0)+1; left--; }
+  return out;
+}
 // ===== الجلسة (Anki) =====
 function queue(){
   const now=Date.now(), P=pool();
   const L=P.filter(c=>st[c.id]?.t==='l'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
   const R=P.filter(c=>st[c.id]?.t==='r'&&st[c.id].due<=now).sort((a,b)=>st[a.id].due-st[b.id].due);
-  const N=sessNew<lim()?P.filter(c=>!st[c.id]):[];
+  const N=newLeft()>0?mixNew(P.filter(c=>!st[c.id])):[];
   return [...L,...R,...N];
 }
 function bar(){
   const k=counts(), m=Math.floor((Date.now()-sessionStart)/MIN);
-  return `<div class="bar"><span class="cnt"><b style="color:var(--blue)">${Math.max(0,Math.min(k.n,lim()-sessNew))}</b><b style="color:var(--bad)">${k.l}</b><b style="color:var(--accent)">${k.r}</b></span><span>${m} دقيقة</span>${undoBtn()}<button class="link" id="home">إنهاء</button></div>`;
+  return `<div class="bar"><span class="cnt"><b style="color:var(--blue)">${Math.min(k.n,newLeft())}</b><b style="color:var(--bad)">${k.l}</b><b style="color:var(--accent)">${k.r}</b></span><span>${m} دقيقة</span>${undoBtn()}<button class="link" id="home">إنهاء</button></div>`;
 }
 function frame(c,tag,body,barHtml){
   SW=null;
@@ -344,19 +395,19 @@ function next(){
 }
 function show(c){
   const s=st[c.id];
-  if(!s) return flip(c,'<span class="tag new">جديدة '+(sessNew+1)+'/'+lim()+'</span>',true);
+  if(!s) return flip(c,'<span class="tag new">جديدة'+(lim()==='auto'?' · خطة اليوم '+(newToday()+1)+'/'+limTxt():' '+(sessNew+1)+'/'+lim())+'</span>',true);
   if(s.t==='r') return flip(c,'<span class="tag">مراجعة</span>');
   [explain,mcq,recall,write][s.step](c);
 }
 function learn(c,step,delay){ const o=st[c.id]||{}; st[c.id]={t:'l',step,due:Date.now()+(delay??2*MIN),lapses:(o.lapses||0),bad:o.bad||0,u:Date.now()}; save(); }
 function graduate(c,iv){ const s=st[c.id]||{}; st[c.id]={t:'r',iv,ease:s.ease||2.5,due:Math.min(Date.now()+iv*DAY,EXAM-DAY/2),reps:(s.reps||0)+1,bad:s.bad||0,u:Date.now()}; save(); }
-const sAct=(c,isNew)=>snap(c,()=>{ if(isNew) sessNew=Math.max(0,sessNew-1); show(c); });
+const sAct=(c,isNew)=>snap(c,()=>{ if(isNew){ sessNew=Math.max(0,sessNew-1); const L=X.log[dkey()]; if(L&&L.nw) {L.nw--; saveX();} } show(c); });
 
 function flip(c,tag,isNew){
   frame(c,tag,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.n?`<div class="x">${esc(c.n)}</div>`:''}</div>
     <div class="acts" id="acts"><button class="main" id="show">اكشف الجواب</button></div>`);
   on('#show',()=>{
-    $('#ans').hidden=false; if(isNew) sessNew++;
+    $('#ans').hidden=false; if(isNew){ sessNew++; const L=X.log[dkey()]||(X.log[dkey()]={n:0,ok:0,bad:0,sec:0}); L.nw=(L.nw||0)+1; saveX(); }
     const s=st[c.id], iv=s?.iv||0, ease=s?.ease||2.5;
     const hard=s?Math.max(1,Math.round(iv*1.2)):1, good=s?Math.max(iv+1,Math.round(iv*ease)):1, easy=s?Math.max(good+1,Math.round(iv*ease*1.3)):3;
     $('#acts').className='acts four';
@@ -422,6 +473,18 @@ function write(c){
 }
 
 // ===== صح أو خطأ (يُستعمل في المراجعة والاختبارات) =====
+const STOP=new Set(['التي','الذي','الذين','وهو','وهي','فيه','فيها','عليه','عليها','إلى','على','حتى','إذا','إلا','ولا','وإن','لغير','بلا','كان','يكون','منه','منها','بعد','قبل','عند','أو','ذلك','هذا','مع','كل','غير','بين','ولو','إن','أن','لم','لا','ما','من','في','عن','بها','به','له','لها','فإن','وإلا','أي','ثم','فلا','وفي','وهما','وما','ومن']);
+const toks=a=>String(a).split(/([\s،.؛:()«»]+)/);
+function blankItem(c){ // أكمل الفراغ: تُخفى كلمة من جواب البطاقة، والخيارات كلمات من أجوبة الباب نفسه
+  const T=toks(c.a); const cand=T.map((w,i)=>[w,i]).filter(([w])=>w.replace(/^[وبفل]/,'').length>=4&&!STOP.has(w)&&!/[\s،.؛:()«»]/.test(w));
+  if(cand.length<2) return null;
+  const num=cand.filter(([w])=>NUMRE.test(' '+w)), src=num.length&&Math.random()<.5?num:cand, [word,idx]=src[Math.floor(Math.random()*src.length)];
+  const inAns=new Set(T); const pool2=[...new Set(deck.filter(x=>x.b===c.b&&x.id!==c.id).flatMap(x=>toks(x.a)).filter(w=>w.length>=Math.max(3,word.length-3)&&w.length<=word.length+4&&!STOP.has(w)&&!inAns.has(w)&&!/[\s،.؛:()«»]/.test(w)&&(!NUMRE.test(' '+word)||NUMRE.test(' '+w))))];
+  if(pool2.length<3) return null;
+  const opts=shuffle([word,...shuffle(pool2).slice(0,3)]);
+  const html=T.map((w,i)=>i===idx?'<b style="border-bottom:2px solid var(--accent);padding:0 1.5em"> ؟ </b>':esc(w)).join('');
+  return {opts,right:word,html};
+}
 function tfItem(c){ const truth=!c.w||c.w.length<1||Math.random()<.5; return {truth, shown: truth?(c.ca||c.a):c.w[Math.floor(Math.random()*c.w.length)]}; }
 
 // ===== المراجعة الحرة: تحتاج «عرفتها» مرتين متتاليتين، وبعدها تنجز وتتأجل أيام =====
@@ -461,8 +524,13 @@ function cramRes(c,ok){
   cramNext();
 }
 function cramShow(){
-  const c=cq[0], r=Math.random(), hasW=c.w&&c.w.length>=3;
-  if(hasW&&r<.35){
+  const c=cq[0], r=Math.random(), hasW=c.w&&c.w.length>=3, bl=r<.2?blankItem(c):null;
+  if(bl){
+    cramFrame(c,`<p class="q">${esc(c.q)}</p><p class="lbl">أكمل الفراغ:</p><div class="tfbox">${bl.html}</div><div class="opts">${bl.opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><div id="ans"></div><div class="acts" id="acts"></div>`);
+    $$('.opt').forEach(b=>b.onclick=()=>{ const ok=bl.opts[+b.dataset.i]===bl.right;
+      $$('.opt').forEach(x=>{x.disabled=true; if(bl.opts[+x.dataset.i]===bl.right) x.classList.add('right');}); if(!ok) b.classList.add('wrong');
+      $('#ans').innerHTML=`<div class="a">${esc(c.a)}</div>`; $('#acts').innerHTML=`<button class="main" id="nx">التالي</button>`; on('#nx',()=>cramRes(c,ok)); });
+  } else if(hasW&&r<.4){
     const right=c.ca||c.a, opts=shuffle([right,...c.w]);
     cramFrame(c,`<p class="q">${esc(c.q)}</p><div class="opts">${opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div><div class="acts" id="acts"></div>`);
     $$('.opt').forEach(b=>b.onclick=()=>{
@@ -540,11 +608,12 @@ function setPage(){
   const mc=Object.keys(X.mute).length;
   page('⚙️ الإعدادات',`<div class="set"><p class="lbl">الهدف اليومي (عدد الإجابات)</p><div class="chips" id="gl">${[20,40,60,100].map(n=>`<button data-n="${n}" class="${goal()===n?'on':''}">${n}</button>`).join('')}</div></div>
     <div class="set"><label><input type="checkbox" id="sk" ${skipW()?'checked':''}> تخطّي خطوة «اكتبها»</label><p class="x" style="margin:0">التعلّم يصير 3 خطوات: الشرح، الاختيار، من حفظك.</p></div>
+    <div class="set"><label><input type="checkbox" id="mx" ${mix()?'checked':''}> خلط الأبواب في البطاقات الجديدة</label><p class="x" style="margin:0">لما تختار «كل الأبواب»، الجديد يجيك من كل باب على قد حجمه، عشان ما يبقى باب ما درسته.</p></div>
     <div class="set"><p class="lbl">حجم الخط</p><div class="chips" id="fz">${[.9,1,1.15,1.3].map(n=>`<button data-n="${n}" class="${fs()===n?'on':''}">${n===1?'عادي':n<1?'أصغر':n<1.2?'كبير':'أكبر'}</button>`).join('')}</div></div>
     <div class="set"><p class="lbl">البطاقات المكتومة («أعرفها أكيد»): ${mc}</p>${mc?'<button class="big alt small" id="um">اعرضها وتقدر ترجّعها</button>':''}</div>`);
   $$('#gl button').forEach(b=>b.onclick=()=>{S.set('goal',+b.dataset.n);setPage();});
   $$('#fz button').forEach(b=>b.onclick=()=>{S.set('fs',+b.dataset.n);applyFs();setPage();});
-  $('#sk').onchange=e=>S.set('skipW',e.target.checked);
+  $('#sk').onchange=e=>S.set('skipW',e.target.checked); $('#mx').onchange=e=>S.set('mix',e.target.checked);
   on('#um',mutedPage);
 }
 function mutedPage(){ const list=deck.filter(muted); page('البطاقات المكتومة',rows(list),setPage); wireRows(mutedPage);
@@ -553,7 +622,10 @@ function progPage(){
   const days=[...Array(7)].map((_,i)=>dkey(Date.now()-i*DAY)), L=X.log;
   const ex=X.exams.slice(-8).reverse();
   const chs=chapters().map(b=>{const cs=deck.filter(c=>c.b===b), d=cs.filter(c=>st[c.id]?.t==='r'||muted(c)).length; return [b,d,cs.length];});
-  page('📊 تقدمي وسجلّي',`<div class="pred"><div><span>توقّع درجتك تقريباً</span><br><span style="font-size:.78rem">محسوب من إنجازك في البطاقات وآخر اختبار تجريبي</span></div><div><b>${predict()}</b> <span>من 60</span></div></div>
+  const dl=X.exams.filter(e=>e.k==='يومي').slice(-10);
+  page('📊 تقدمي وسجلّي',`${passBox()}<p class="x" style="margin:0">العداد تقريبي: محسوب من إنجازك في البطاقات وآخر اختبار تجريبي كامل.</p>
+    <p class="lbl">خريطة الإنجاز</p>${mapGrid()}
+    <p class="lbl">اختبار اليوم (آخر ${dl.length})</p>${dl.length?`<div class="spark">${dl.map(e=>{const p=Math.round(100*e.score/e.total);return `<div><i style="height:${Math.max(4,p)}%;background:var(${p>=80?'--accent':'--warn'})"></i><small>${p}</small></div>`;}).join('')}</div>`:'<p class="note">ما سويت اختبار يومي للحين.</p>'}
     <div class="goal"><span>🔥 <b>${streak()}</b> أيام متتالية حققت فيها الهدف (${goal()})</span></div>
     <p class="lbl">آخر 7 أيام</p><div style="overflow-x:auto"><table class="tbl"><tr><th>اليوم</th><th>إجابات</th><th>صح</th><th>غلط</th><th>دقايق</th></tr>
     ${days.map((d,i)=>{const x=L[d]||{n:0,ok:0,bad:0,sec:0}; return `<tr><td>${i===0?'اليوم':i===1?'أمس':d.slice(5)}</td><td>${x.n}</td><td>${x.ok}</td><td>${x.bad}</td><td>${Math.round(x.sec/60)}</td></tr>`;}).join('')}</table></div>
@@ -568,8 +640,9 @@ function buildExam(n,from){
   const tot=from.length, out=[];
   for(const b in by){ const k=Math.max(1,Math.round(n*by[b].length/tot)); out.push(...shuffle(by[b].slice()).slice(0,k)); }
   if(out.length<n){ const have=new Set(out.map(c=>c.id)); out.push(...shuffle(from.filter(c=>!have.has(c.id))).slice(0,n-out.length)); }
-  return shuffle(out).slice(0,n).map(c=>{ const hasW=c.w&&c.w.length>=3;
-    if(hasW&&Math.random()<.6){ const right=c.ca||c.a; return {c,type:'mcq',opts:shuffle([right,...c.w]),right}; }
+  return shuffle(out).slice(0,n).map(c=>{ const hasW=c.w&&c.w.length>=3, r=Math.random();
+    if(r<.25){ const bl=blankItem(c); if(bl) return {c,type:'blank',...bl}; }
+    if(hasW&&r<.7){ const right=c.ca||c.a; return {c,type:'mcq',opts:shuffle([right,...c.w]),right}; }
     if(hasW) return {c,type:'tf',...tfItem(c)};
     return {c,type:'tf',truth:true,shown:c.ca||c.a}; });
 }
@@ -591,17 +664,27 @@ function startExam(items,kind,mins,chapName){
 function examShow(){
   SW=null; const it=EX.items[EX.i], c=it.c, ms=EX.end-Date.now();
   const top=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${EX.i+1}/${EX.items.length}</b></span><span id="clock">${Math.floor(ms/MIN)}:${String(Math.floor(ms%MIN/1000)).padStart(2,'0')}</span><button class="link" id="fin">سلّم الاختبار</button></div>`;
-  const body=it.type==='mcq'?`<p class="q">${esc(c.q)}</p><div class="opts">${it.opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div>`
+  const body=it.type==='mcq'||it.type==='blank'?`<p class="q">${esc(c.q)}</p>${it.type==='blank'?`<p class="lbl">أكمل الفراغ:</p><div class="tfbox">${it.html}</div>`:''}<div class="opts">${it.opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div>`
     :`<p class="q">${esc(c.q)}</p><p class="lbl">هل هذا الجواب صحيح؟</p><div class="tfbox">${esc(it.shown)}</div><div class="acts two"><button class="good" data-t="1">صح</button><button class="again" data-t="0">خطأ</button></div>`;
-  app.innerHTML=top+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span><span class="tag">${it.type==='mcq'?'اختيار':'صح أو خطأ'}</span></div>${body}</article>`;
+  app.innerHTML=top+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span><span class="tag">${it.type==='mcq'?'اختيار':it.type==='blank'?'أكمل الفراغ':'صح أو خطأ'}</span>${EX.place?'<button class="ibtn" id="idk" style="margin-inline-start:auto">ما أدري</button>':''}</div>${body}</article>`;
   const answer=ok=>{ EX.ans[EX.i]=ok; EX.i++; EX.i<EX.items.length?examShow():finishExam(); };
   $$('.opt').forEach(b=>b.onclick=()=>answer(it.opts[+b.dataset.i]===it.right));
+  on('#idk',()=>answer(false));
   $$('[data-t]').forEach(b=>b.onclick=()=>answer((b.dataset.t==='1')===it.truth));
   on('#fin',finishExam);
 }
+function finishPlace(E){
+  let known=0; E.items.forEach((it,i)=>{ if(E.ans[i]===true){ graduate(it.c,3); known++; tick(true);} });
+  const by={}; E.items.forEach((it,i)=>{ const b=it.c.b; by[b]=by[b]||[0,0]; by[b][1]++; if(E.ans[i]===true) by[b][0]++; });
+  X.exams.push({d:dkey(),k:'تحديد مستوى',score:known,total:E.items.length}); saveX();
+  page('🧭 نتيجة تحديد المستوى',`<div class="banner ok">عرفت <b>${known}</b> من ${E.items.length}، وتأجلت كلها. وفّرت على نفسك ${known} بطاقة.</div>
+    <div style="overflow-x:auto"><table class="tbl"><tr><th>الباب</th><th>عرفت</th></tr>${Object.entries(by).map(([b,[k,n]])=>`<tr><td>${esc(b)}</td><td>${k}/${n}</td></tr>`).join('')}</table></div>
+    <p class="note">الأبواب اللي جبت فيها قليل: ابدأ فيها.</p>`);
+}
 function finishExam(){
   if(!EX) return; clearInterval(exTimer);
-  const E=EX; EX=null; const total=E.items.length, score=E.ans.filter(Boolean).length, mins=Math.round((Date.now()-E.start)/MIN);
+  const E=EX; EX=null; if(E.place) return finishPlace(E);
+  const total=E.items.length, score=E.ans.filter(Boolean).length, mins=Math.round((Date.now()-E.start)/MIN);
   const wrong=E.items.filter((it,i)=>E.ans[i]===false), skipped=E.items.filter((it,i)=>E.ans[i]===undefined).length;
   for(const it of wrong){ const c=it.c; if(!st[c.id]||st[c.id].t==='r') learn(c,0,0); miss(c); }
   for(let i=0;i<total;i++) if(E.ans[i]===true) tick(true);
@@ -616,6 +699,103 @@ function finishExam(){
   wireRows(); on('#rq',()=>cram(wrong.map(it=>it.c).slice(0,20),'أخطاء الاختبار'));
 }
 
+// ===== تقسيم القوائم (من نص جواب البطاقة نفسها) =====
+const CW={'واجب واحد':1,'شيئان':2,'شرطان':2,'قسمان':2,'اثنان':2,'ثلاثة':3,'ثلاث':3,'أربعة':4,'أربع':4,'خمسة':5,'خمس':5,'ستة':6,'ست':6,'سبعة':7,'سبع':7,'ثمانية':8,'ثمان':8,'تسعة':9,'تسع':9,'عشرة':10,'عشر':10,'أربعة عشر':14};
+function splitList(a){
+  let t=a.split(/\.\s/)[0].replace(/\d+\)\s*/g,''), count=null;
+  const m=t.match(/^([^:،(]{2,14}):\s*/); if(m&&CW[m[1].trim()]){count=m[1].trim(); t=t.slice(m[0].length);} else { const k=t.indexOf(':'); if(k>=0&&k<60) t=t.slice(k+1); }
+  const out=[]; let d=0,cur='';
+  for(const ch of t){ if(ch==='('||ch==='«')d++; if(ch===')'||ch==='»')d--; if(ch==='،'&&d===0){out.push(cur);cur='';} else cur+=ch; }
+  out.push(cur);
+  return {count, items: out.map(x=>x.trim().replace(/^و(?=\S)/,'').replace(/[.؛]$/,'').trim()).filter(x=>x.length>1)};
+}
+// المتشابهات: أقسام يخلط بينها الطلاب، العناصر من أجوبة البطاقات
+const SIM=[
+  {t:'الصلاة: شرط ولا ركن ولا واجب؟', g:[['شرط','s47'],['ركن','v2940'],['واجب','s51']]},
+  {t:'الصلاة: مبطل ولا مكروه؟', g:[['يبطلها','s54'],['يكره فيها','s53']]},
+  {t:'الوضوء: شرط ولا فرض ولا ناقض؟', g:[['شرط','s13'],['فرض','s12'],['ناقض','s20']]},
+  {t:'التيمم: شرط ولا فرض ولا مبطل؟', g:[['شرط','s29'],['فرض','s31'],['مبطل','s32']]},
+  {t:'الجمعة: شرط الصلاة ولا ركن الخطبة؟', g:[['شرط لصحة الجمعة','s84'],['ركن للخطبة','s85']]},
+  {t:'الحج: ركن ولا واجب ولا محظور؟', g:[['ركن','s142'],['واجب','v9872'],['محظور في الإحرام','s137']]},
+];
+function simItems(grp){
+  const cats=grp.g.map(([n,id])=>{const c=deck.find(x=>x.id===id); return c?{n,c,items:splitList(c.a).items}:null;}).filter(Boolean);
+  const cnt={}; cats.forEach(k=>new Set(k.items).forEach(i=>cnt[i]=(cnt[i]||0)+1));
+  return {cats, items:cats.flatMap(k=>[...new Set(k.items)].filter(i=>cnt[i]===1).map(i=>({i,cat:k.n,c:k.c})))};
+}
+function simPage(){
+  const G=SIM.map(simItems).map((s,i)=>({...s,t:SIM[i].t})).filter(g=>g.cats.length>=2);
+  page('🔀 المتشابهات',`<p class="note" style="text-align:right">أكثر شي يطيّح الدرجات الخلط بين الأشياء المتقاربة. هنا تشوفها جنب بعض، وبعدها تختبر نفسك: هذا شرط ولا ركن ولا واجب؟</p>
+    <button class="big" id="all">اختبرني فيها كلها</button>
+    ${G.map((g,gi)=>`<div class="set"><div class="topline"><b>${esc(g.t)}</b><button class="ibtn" data-g="${gi}">اختبرني</button></div>
+      ${g.cats.map(k=>`<div><p class="lbl" style="color:var(--accent)">${esc(k.n)} (${k.items.length})</p><p class="x" style="margin:4px 0 0;color:var(--ink)">${k.items.map(esc).join(' · ')}</p></div>`).join('')}</div>`).join('')}`);
+  const run=(gs,title)=>{ const Q=shuffle(gs.flatMap(g=>g.items.map(x=>({...x,cats:g.cats.map(k=>k.n),t:g.t})))).slice(0,15); simQuiz(Q,0,0,title); };
+  on('#all',()=>run(G,'المتشابهات'));
+  $$('[data-g]').forEach(b=>b.onclick=()=>run([G[+b.dataset.g]],G[+b.dataset.g].t));
+}
+function simQuiz(Q,i,ok,title){
+  if(i>=Q.length){ page('🔀 النتيجة',`<div class="banner ${ok>=Q.length*.8?'ok':''}">جبت ${ok} من ${Q.length}</div><button class="big" id="again">مرة ثانية</button>`,simPage); on('#again',simPage); return; }
+  const x=Q[i]; SW=null;
+  app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${i+1}/${Q.length}</b><span>صح ${ok}</span></span><span>${esc(title)}</span><button class="link" id="home">إنهاء</button></div>
+    <article class="card"><div class="tags"><span class="tag plain">${esc(x.t)}</span></div><p class="q">«${esc(x.i)}»</p><p class="lbl">هذا…؟</p>
+    <div class="opts">${x.cats.map(n=>`<button class="opt" data-n="${esc(n)}">${esc(n)}</button>`).join('')}</div><div id="ans"></div><div class="acts" id="acts"></div></article>`;
+  on('#home',home);
+  $$('.opt').forEach(b=>b.onclick=()=>{ const good=b.dataset.n===x.cat;
+    $$('.opt').forEach(o=>{o.disabled=true; if(o.dataset.n===x.cat) o.classList.add('right');}); if(!good) b.classList.add('wrong');
+    tick(good); $('#ans').innerHTML=`<p class="x">من بطاقة: ${esc(x.c.q)}</p>`;
+    $('#acts').innerHTML='<button class="main" id="nx">التالي</button>'; on('#nx',()=>simQuiz(Q,i+1,ok+(good?1:0),title)); });
+}
+// القوائم خطوة خطوة: أولاً العدد، ثم عنصر ناقص
+function listCards(){ return pool().filter(c=>{const r=splitList(c.a); return r.count&&CW[r.count]===r.items.length&&r.items.length>=3;}); }
+function listsIntro(){
+  const L=listCards();
+  page('🧩 القوائم خطوة خطوة',`<p class="note" style="text-align:right">البطاقات اللي جوابها قائمة (شروط، فروض، أركان…). لكل قائمة: أول شي تختار عددها، وبعدين تكمّل عنصرين ناقصين منها. كذا تحفظها قطعة قطعة.</p>
+    <p class="lbl">${L.length} قائمة في «${esc(chap()||'كل الأبواب')}»</p>${L.length?'<button class="big" id="st">ابدأ (10 قوائم)</button>':''}${rows(L,false)}`);
+  wireRows(listsIntro);
+  on('#st',()=>{ const Q=[]; for(const c of shuffle(L.slice()).slice(0,10)){ const r=splitList(c.a); Q.push({c,k:'count',r}); const miss2=shuffle([...r.items.keys()]).slice(0,2); for(const m of miss2) Q.push({c,k:'item',r,m}); } listQuiz(Q,0,0); });
+}
+function listQuiz(Q,i,ok){
+  if(i>=Q.length){ page('🧩 النتيجة',`<div class="banner ${ok>=Q.length*.8?'ok':''}">جبت ${ok} من ${Q.length}</div><button class="big" id="again">مرة ثانية</button>`,listsIntro); on('#again',listsIntro); return; }
+  const x=Q[i], c=x.c; SW=null; let opts, right, body;
+  if(x.k==='count'){
+    right=x.r.count; const nums=[...new Set(Object.keys(CW).filter(w=>CW[w]!==CW[right]&&CW[w]>=2&&CW[w]<=14).map(w=>CW[w]))];
+    const alt=shuffle(nums).slice(0,3).map(n=>Object.keys(CW).find(w=>CW[w]===n&&!/^(شيئان|شرطان|قسمان|ثلاث|أربع|خمس|ست|سبع|ثمان|تسع|عشر)$/.test(w))||String(n));
+    opts=shuffle([right,...alt]); body=`<p class="q">${esc(c.q)}</p><p class="lbl">كم عددها؟</p>`;
+  } else {
+    right=x.r.items[x.m]; const others=[...new Set(listCards().filter(o=>o.id!==c.id).flatMap(o=>splitList(o.a).items).filter(t=>!x.r.items.includes(t)))];
+    opts=shuffle([right,...shuffle(others).slice(0,3)]);
+    body=`<p class="q">${esc(c.q)}</p><p class="lbl">وش الناقص؟ (${esc(x.r.count)})</p><div class="tfbox">${x.r.items.map((t,j)=>j===x.m?'<b style="color:var(--accent)">؟؟؟</b>':esc(t)).join('، ')}</div>`;
+  }
+  app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${i+1}/${Q.length}</b><span>صح ${ok}</span></span><span>القوائم</span><button class="link" id="home">إنهاء</button></div>
+    <article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span></div>${body}<div class="opts">${opts.map((o,j)=>`<button class="opt" data-i="${j}">${esc(o)}</button>`).join('')}</div><div id="ans"></div><div class="acts" id="acts"></div></article>`;
+  on('#home',home);
+  $$('.opt').forEach(b=>b.onclick=()=>{ const good=opts[+b.dataset.i]===right;
+    $$('.opt').forEach(o=>{o.disabled=true; if(opts[+o.dataset.i]===right) o.classList.add('right');}); if(!good) b.classList.add('wrong');
+    tick(good); if(!good&&st[c.id]){ st[c.id].bad=(st[c.id].bad||0)+1; save(); }
+    if(x.k==='item') $('#ans').innerHTML=`<div class="a">${esc(c.a)}</div>`;
+    $('#acts').innerHTML='<button class="main" id="nx">التالي</button>'; on('#nx',()=>listQuiz(Q,i+1,ok+(good?1:0))); });
+}
+// جدول الأرقام
+function numsPage(){
+  const L=pool().filter(isNum), by={}; L.forEach(c=>(by[c.b]=by[c.b]||[]).push(c));
+  page('🔢 جدول الأرقام',`<p class="note" style="text-align:right">كل بطاقة جوابها فيه عدد أو مقدار (${L.length}). اقرأها، وبعدين اضغط «اختبرني».</p>
+    <button class="big" id="q">اختبرني في الأرقام (20)</button>
+    ${Object.entries(by).map(([b,cs])=>`<p class="lbl" style="color:var(--accent)">${esc(b)}</p><div style="overflow-x:auto"><table class="tbl">${cs.map(c=>`<tr><td style="width:45%">${esc(c.q)}</td><td style="font-family:'Noto Naskh Arabic',serif">${esc(c.a)}</td></tr>`).join('')}</table></div>`).join('')}`);
+  on('#q',()=>cram(shuffle(L.slice()).slice(0,20),'الأرقام',numsPage));
+}
+// ===== تحديد المستوى: اللي تجاوبه صح يتأجل مباشرة =====
+function placeIntro(){
+  const fresh=deck.filter(c=>!muted(c)&&!st[c.id]);
+  page('🧭 اختبار تحديد المستوى',`<p class="note" style="text-align:right">40 سؤال اختيار من كل الأبواب، من البطاقات اللي ما درستها. اللي تجاوبه صح يتأجل 3 أيام ويوفر عليك وقت، واللي تغلط فيه أو تقول «ما أدري» يبقى جديد بدون أي عقوبة. <b>لا تخمّن</b>: إذا ما تعرف اضغط «ما أدري».</p>
+    <p class="lbl">باقي ${fresh.length} بطاقة ما درستها</p>${fresh.length?'<button class="big" id="st">ابدأ</button>':''}`);
+  on('#st',()=>{ const items=buildExam(Math.min(40,fresh.length),fresh).map(it=>{ const c=it.c; if(c.w&&c.w.length>=3){ const right=c.ca||c.a; return {c,type:'mcq',opts:shuffle([right,...c.w]),right}; } return it; });
+    startExam(items,'تحديد مستوى',20); EX.place=true; examShow(); });
+}
+function dailyIntro(){
+  const studied=deck.filter(c=>st[c.id]&&!muted(c));
+  if(studied.length<10) return page('⏱️ اختبار اليوم','<p class="note">يحتاج 10 بطاقات درستها على الأقل. ادرس شوي وارجع.</p>');
+  startExam(buildExam(10,studied),'يومي',5);
+}
 // ===== ليلة الاختبار: كل البطاقات بسرعة، سؤال وجواب =====
 function night(){
   let N=S.get('night:'+tr,null);
