@@ -1107,7 +1107,20 @@ function todayList(extra){
   const due=allDue().sort((a,b)=>st[a.id].due-st[b.id].due);
   const n=(extra||0)+(plan().final?0:plan().left);
   const fresh=mixNew(deck.filter(c=>!muted(c)&&!st[c.id])).slice(0,n);
-  return [...due,...fresh];
+  // نخلط المستحق مع الجديد ونفرّق المواد، عشان كل 20 بطاقة يكون فيها من كل المواد
+  const by={}; for(const c of [...due,...fresh]) (by[c.s]=by[c.s]||[]).push(c);
+  const M=marks(), keys=Object.keys(by).sort((a,b)=>(M[b]||0)-(M[a]||0)), out=[], used={};
+  while(out.length<due.length+fresh.length){ let best=null,bv=Infinity;
+    for(const k of keys){ if(!by[k].length) continue; const v=(used[k]||0)/Math.pow(M[k]||4,.75); if(v<bv){bv=v;best=k;} }
+    out.push(by[best].shift()); used[best]=(used[best]||0)+1; }
+  return out;
+}
+function subjPage(){
+  page('📚 ذاكر مادة معينة',`<div class="menu">${subjects().map(k=>{ const cs=deck.filter(c=>c.s===k&&!muted(c)), kn=cs.filter(c=>st[c.id]?.t==='r').length;
+    return `<button data-k="${k}"><span>${{fiqh:'⚖️',hadith:'📜',aqeedah:'🕋',nahw:'✍️',tafsir:'📖',tajweed:'🎙️',mithaq:'🕌'}[k]||'📘'}</span><b>${SUBJ[k]}</b><small>${marks()[k]} درجة · حفظت ${kn} من ${cs.length}</small></button>`;}).join('')}</div>`);
+  $$('.menu button').forEach(b=>b.onclick=()=>{ const k=b.dataset.k, now=Date.now();
+    const cs=deck.filter(c=>c.s===k&&!muted(c)), due=cs.filter(c=>st[c.id]&&st[c.id].due<=now), fresh=mixChap(cs.filter(c=>!st[c.id]));
+    run([...due,...fresh].slice(0,20),SUBJ[k]); });
 }
 function home(){
   U.length=0; stopSpeech(); SW=null; S.set('sub:'+tr,''); S.set('ch:'+tr,''); S.set('flt:'+tr,'all');
@@ -1120,6 +1133,7 @@ function home(){
     <button class="big" id="go">${L.length?'ابدأ':'زيدني 10 بطاقات'}</button>
     <div><div class="meter" style="height:10px"><i style="width:${pct}%"></i></div><p class="note" style="margin-top:6px">حفظت ${known} من ${deck.length} (${pct}%)</p></div>
     <div class="menu">
+      <button id="subj"><span>📚</span><b>ذاكر مادة معينة</b><small>${subjects().map(k=>SUBJ[k]).join('، ')}</small></button>
       <button id="mock"><span>📝</span><b>اختبار تجريبي</b><small>مثل الاختبار الحقيقي</small></button>
       <button id="mist"><span>❌</span><b>أخطائي</b><small>${bad?bad+" سؤال":"ولا غلطة للحين"}</small></button>
       ${deck.some(c=>c.id==='h1r')?'<button id="h40"><span>📜</span><b>الأربعين النووية</b><small>الراوي ومن أخرجه</small></button>':''}
@@ -1133,7 +1147,7 @@ function home(){
     on('#st',()=>startExam(shuffle(items),'شامل',60)); });
   on('#mist',()=>{ const l=deck.filter(c=>(st[c.id]?.bad||0)>0&&!muted(c)).sort((a,b)=>st[b.id].bad-st[a.id].bad).slice(0,20);
     l.length?run(l,'أخطائي'):page('❌ أخطائي','<p class="note" style="font-size:1rem">ما عندك أخطاء للحين 👍</p>'); });
-  on('#h40',h40Simple);
+  on('#h40',h40Simple); on('#subj',subjPage);
   on('#sw',()=>{tr=null;S.set('track',null);pick();});
 }
 // جلسة بسيطة: كل بطاقة تُسأل؛ الغلط يرجع بعد 3 بطاقات لين تعرفه
