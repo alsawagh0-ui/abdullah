@@ -88,6 +88,7 @@ for f in sorted((SH).glob("h40_clips_[ab].json")):
         clips.append({"n": c["n"], "pts": [{"t": p["t"]} for p in c.get("pts", [])], "how": c.get("how", ""), "mn": c.get("mn", ""),
                       "ask": [{"q": q["q"], "a": q["a"], "w": q["w"][:3]} for q in c.get("ask", []) if len(q.get("w", [])) >= 3]})
 clips.sort(key=lambda c: c["n"])
+clips = []   # مقاطع القصص أُلغيت بطلب المستخدم (ستُستبدل بفيديوهات بصوت)
 tpl = tpl.replace("/*MARKS*/{}", json.dumps(MARKS))
 tpl = tpl.replace("/*CLIPS*/[]", json.dumps(clips, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 tpl = tpl.replace("/*CONTENT*/[]", json.dumps(content, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
