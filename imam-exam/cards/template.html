@@ -127,6 +127,15 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 .spark{display:flex;align-items:flex-end;gap:6px;height:110px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .spark div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:2px}
 .spark i{width:100%;border-radius:4px 4px 0 0;display:block} .spark small{font-size:.7rem;color:var(--muted)}
+.why{padding:10px 12px;border-radius:10px;background:var(--blue-soft);color:var(--ink);line-height:1.8;font-size:.95em}
+.why b{color:var(--blue)}
+.trap{padding:10px 12px;border-radius:10px;background:var(--bad-soft);line-height:1.8;font-size:.95em}
+.trap b{color:var(--bad)}
+.node{display:grid;grid-template-columns:28px minmax(0,1fr);gap:10px;align-items:start}
+.node>span{width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:.85rem}
+.node ul{margin:4px 0 0;padding-inline-start:18px;line-height:1.9}
+.pg{font-size:.72rem;color:var(--muted);font-weight:400}
+.rule{padding:12px 14px;border-radius:10px;border-inline-start:4px solid var(--accent);background:var(--soft);font-weight:600;line-height:1.8}
 .big.small{font-size:1rem;padding:13px}
 </style>
 
@@ -134,6 +143,7 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 
 <script>
 const CARDS=/*CARDS*/[];
+const CONTENT=/*CONTENT*/[];
 const EXAM=new Date('2026-10-06T00:00:00+03:00').getTime(), MIN=6e4, DAY=864e5;
 const STEPS=['اشرح','اختر','من حفظك','اكتبها'];
 const S={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
@@ -299,6 +309,9 @@ function home(){
     <p class="lbl">أدوات</p>
     <div class="tools">
       ${Object.values(st).length<30?'<button id="t-place" style="grid-column:1/-1;border-color:var(--accent)">🧭 اختبار تحديد المستوى<small>40 سؤال، اللي تعرفه يتأجل ويوفر عليك وقت</small></button>':''}
+      ${CONTENT.length?`<button id="t-und" style="grid-column:1/-1;border-color:var(--blue)">🌳 فهم الباب<small>شجرة الباب، القواعد الجامعة، الأخطاء الشائعة</small></button>
+      <button id="t-cases">🧑‍⚖️ حالات عملية<small>${CONTENT.reduce((a,k)=>a+k.cases.length,0)} حالة</small></button>
+      <button id="t-traps">⚠️ الأخطاء الشائعة<small>صح ولا خطأ؟</small></button>`:''}
       <button id="t-daily">⏱️ اختبار اليوم<small>10 أسئلة في 5 دقايق</small></button>
       <button id="t-sim">🔀 المتشابهات<small>شرط ولا ركن ولا واجب؟</small></button>
       <button id="t-lists">🧩 القوائم خطوة خطوة<small>العدد ثم العناصر</small></button>
@@ -330,6 +343,7 @@ function home(){
   on('#t-mock',()=>mockIntro()); on('#t-cexam',()=>chapExamIntro()); on('#t-night',()=>night());
   on('#t-listen',()=>listenIntro()); on('#t-hard',()=>hardPage()); on('#t-star',()=>starPage());
   on('#t-search',()=>searchPage()); on('#t-read',()=>readPage()); on('#t-prog',()=>progPage()); on('#t-set',()=>setPage());
+  on('#t-und',()=>undPage()); on('#t-cases',()=>casesIntro()); on('#t-traps',()=>trapsQuiz());
   on('#t-place',()=>placeIntro()); on('#t-place2',()=>placeIntro()); on('#t-daily',()=>dailyIntro()); on('#t-sim',()=>simPage()); on('#t-lists',()=>listsIntro()); on('#t-nums',()=>numsPage()); on('#t-map',()=>page('🗺️ خريطة الإنجاز',mapGrid()+'<p class="note">الأحمر يعني ضعيف، والأخضر يعني متقن. ابدأ بالأحمر اللي حجمه كبير.</p>'));
 }
 
@@ -364,6 +378,13 @@ function mixNew(N){
   while(left){ let best=null,bv=Infinity; for(const b in by){ if(!by[b].length) continue; const v=(got[b]||0)/size[b]; if(v<bv){bv=v;best=b;} }
     out.push(by[best].shift()); got[best]=(got[best]||0)+1; left--; }
   return out;
+}
+// ===== الفهم قبل الحفظ =====
+const cOf=b=>CONTENT.find(x=>x.b===b);
+const trapsOf=c=>{const k=cOf(c.b); return k?k.traps.filter(t=>t.card===c.id):[];};
+const pgTxt=p=>p>8?` <span class="pg">(دليل الطالب ص${p})</span>`:'';
+function extras(c){
+  return (c.y?`<div class="why"><b>ليش؟ </b>${esc(c.y)}</div>`:'')+trapsOf(c).map(t=>`<div class="trap"><b>انتبه: </b>${esc(t.right)} <span class="x">— لا تخلطها بـ: ${esc(t.wrong)}</span></div>`).join('');
 }
 // ===== الجلسة (Anki) =====
 function queue(){
@@ -404,7 +425,7 @@ function graduate(c,iv){ const s=st[c.id]||{}; st[c.id]={t:'r',iv,ease:s.ease||2
 const sAct=(c,isNew)=>snap(c,()=>{ if(isNew){ sessNew=Math.max(0,sessNew-1); const L=X.log[dkey()]; if(L&&L.nw) {L.nw--; saveX();} } show(c); });
 
 function flip(c,tag,isNew){
-  frame(c,tag,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.n?`<div class="x">${esc(c.n)}</div>`:''}</div>
+  frame(c,tag,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div>${c.n?`<div class="x">${esc(c.n)}</div>`:''}${extras(c)}</div>
     <div class="acts" id="acts"><button class="main" id="show">اكشف الجواب</button></div>`);
   on('#show',()=>{
     $('#ans').hidden=false; if(isNew){ sessNew++; const L=X.log[dkey()]||(X.log[dkey()]={n:0,ok:0,bad:0,sec:0}); L.nw=(L.nw||0)+1; saveX(); }
@@ -427,7 +448,7 @@ function flip(c,tag,isNew){
 const stepTag=i=>`<span class="tag s${i}">${i+1}/${skipW()?3:4} · ${STEPS[i]}</span>`;
 function explain(c){
   frame(c,stepTag(0),`<p class="q">${esc(c.q)}</p><div class="a">${esc(c.a)}</div>
-    ${c.ex?`<div class="ex"><b>الشرح: </b>${esc(c.ex)}</div>`:''}${c.mn?`<div class="mn">للحفظ: ${esc(c.mn)}</div>`:''}${c.n?`<div class="x">${esc(c.n)}</div>`:''}
+    ${c.ex?`<div class="ex"><b>الشرح: </b>${esc(c.ex)}</div>`:''}${extras(c)}${c.mn?`<div class="mn">للحفظ: ${esc(c.mn)}</div>`:''}${c.n?`<div class="x">${esc(c.n)}</div>`:''}
     <div class="acts"><button class="main" id="ok">فهمتها</button></div>`);
   on('#ok',()=>{sAct(c);learn(c,1);tick(null);next();});
 }
@@ -444,7 +465,7 @@ function mcq(c){
   });
 }
 function recall(c){
-  frame(c,stepTag(2),`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div>
+  frame(c,stepTag(2),`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div>${extras(c)}</div>
     <div class="acts" id="acts"><button class="main" id="show">جاوب في راسك ثم اكشف</button></div>`);
   on('#show',()=>{
     $('#ans').hidden=false;
@@ -549,7 +570,7 @@ function cramShow(){
       const a=$('#acts'); a.className='acts'; a.innerHTML=`<button class="main" id="nx">التالي</button>`; on('#nx',()=>cramRes(c,ok)); };
     on('#tt',()=>ans(true)); on('#ff',()=>ans(false));
   } else {
-    cramFrame(c,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div>
+    cramFrame(c,`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div>${extras(c)}</div>
       <div class="acts" id="acts"><button class="main" id="show">جاوب في راسك ثم اكشف</button></div>`);
     on('#show',()=>{
       $('#ans').hidden=false;
@@ -783,6 +804,54 @@ function numsPage(){
     ${Object.entries(by).map(([b,cs])=>`<p class="lbl" style="color:var(--accent)">${esc(b)}</p><div style="overflow-x:auto"><table class="tbl">${cs.map(c=>`<tr><td style="width:45%">${esc(c.q)}</td><td style="font-family:'Noto Naskh Arabic',serif">${esc(c.a)}</td></tr>`).join('')}</table></div>`).join('')}`);
   on('#q',()=>cram(shuffle(L.slice()).slice(0,20),'الأرقام',numsPage));
 }
+// شجرة الباب + القواعد + الأخطاء الشائعة
+function undPage(){
+  const bs=CONTENT.map(k=>k.b); let ch=chap(); if(!bs.includes(ch)) ch=bs[0];
+  const k=cOf(ch);
+  page('🌳 فهم الباب',`<div class="chips" id="uc">${bs.map(b=>`<button data-v="${esc(b)}" class="${ch===b?'on':''}">${esc(b)}</button>`).join('')}</div>
+    <p class="note" style="text-align:right">اقرأ الباب كخريطة قبل التفاصيل: الأقسام بالترتيب، ثم القواعد اللي تحل أغلب أسئلته، ثم الأشياء اللي يغلط فيها الناس.</p>
+    ${k.tree.length?`<p class="lbl">شجرة الباب</p><div class="set">${k.tree.map((t,i)=>`<div class="node"><span>${i+1}</span><div><b>${esc(t.h)}</b>${pgTxt(t.p)}<ul>${t.pts.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div>`).join('')}</div>`:''}
+    ${k.rules.length?`<p class="lbl">القواعد الجامعة</p><div class="list">${k.rules.map(r=>`<div class="rule">${esc(r.r)}${pgTxt(r.p)}</div>`).join('')}</div>`:''}
+    ${k.traps.length?`<p class="lbl">الأخطاء الشائعة</p><div class="list">${k.traps.map(t=>`<div class="row"><div class="rq">${esc(t.t)}</div><div class="trap"><b>✗ الخطأ: </b>${esc(t.wrong)}</div><div class="why"><b>✓ الصواب: </b>${esc(t.right)}${pgTxt(t.p)}</div></div>`).join('')}</div>`:''}
+    <div class="tools">${k.cases.length?'<button id="uq">🧑‍⚖️ حالات هذا الباب<small>'+k.cases.length+' حالة</small></button>':''}${k.traps.length?'<button id="ut">⚠️ أخطاء هذا الباب<small>صح ولا خطأ؟</small></button>':''}</div>`);
+  $$('#uc button').forEach(b=>b.onclick=()=>{S.set('ch:'+tr,b.dataset.v);undPage();});
+  on('#uq',()=>casesRun(k.cases,ch)); on('#ut',()=>trapsQuiz(ch));
+}
+function casesIntro(){
+  const ch=chap(), L=CONTENT.filter(k=>!ch||k.b===ch).flatMap(k=>k.cases.map(x=>({...x,b:k.b})));
+  casesRun(L.length?L:CONTENT.flatMap(k=>k.cases.map(x=>({...x,b:k.b}))), ch||'كل الأبواب');
+}
+function casesRun(L,title){ const Q=shuffle(L.map(x=>({...x,b:x.b||title}))).slice(0,10); caseQ(Q,0,0,title); }
+function caseQ(Q,i,ok,title){
+  if(i>=Q.length){ page('🧑‍⚖️ النتيجة',`<div class="banner ${ok>=Q.length*.8?'ok':''}">جبت ${ok} من ${Q.length}</div><button class="big" id="again">حالات ثانية</button>`); on('#again',casesIntro); return; }
+  const x=Q[i], opts=shuffle([x.a,...x.w]); SW=null;
+  app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${i+1}/${Q.length}</b><span>صح ${ok}</span></span><span>حالات عملية</span><button class="link" id="home">إنهاء</button></div>
+    <article class="card"><div class="tags"><span class="tag plain">${esc(x.b)}</span><span class="tag">حالة عملية</span></div><p class="q">${esc(x.q)}</p>
+    <div class="opts">${opts.map((o,j)=>`<button class="opt" data-i="${j}">${esc(o)}</button>`).join('')}</div><div id="ans"></div><div class="acts" id="acts"></div></article>`;
+  on('#home',home);
+  $$('.opt').forEach(b=>b.onclick=()=>{ const good=opts[+b.dataset.i]===x.a;
+    $$('.opt').forEach(o=>{o.disabled=true; if(opts[+o.dataset.i]===x.a) o.classList.add('right');}); if(!good) b.classList.add('wrong');
+    tick(good); const c=x.card&&deck.find(d=>d.id===x.card); if(!good&&c&&st[c.id]){st[c.id].bad=(st[c.id].bad||0)+1;save();}
+    $('#ans').innerHTML=`<div class="why"><b>الجواب: </b>${esc(x.a)}${pgTxt(x.p)}</div>`;
+    $('#acts').innerHTML='<button class="main" id="nx">التالي</button>'; on('#nx',()=>caseQ(Q,i+1,ok+(good?1:0),title)); });
+}
+function trapsQuiz(b){
+  const ch=b||chap(), L=CONTENT.filter(k=>!ch||k.b===ch).flatMap(k=>k.traps.map(t=>({...t,b:k.b})));
+  const Q=shuffle(L).slice(0,12).map(t=>({t,truth:Math.random()<.5}));
+  if(!Q.length) return page('⚠️ الأخطاء الشائعة','<p class="note">ما فيه أخطاء شائعة لهذا الباب.</p>');
+  trapQ(Q,0,0);
+}
+function trapQ(Q,i,ok){
+  if(i>=Q.length){ page('⚠️ النتيجة',`<div class="banner ${ok>=Q.length*.8?'ok':''}">جبت ${ok} من ${Q.length}</div><button class="big" id="again">مرة ثانية</button>`); on('#again',()=>trapsQuiz()); return; }
+  const {t,truth}=Q[i]; SW=null;
+  app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${i+1}/${Q.length}</b><span>صح ${ok}</span></span><span>الأخطاء الشائعة</span><button class="link" id="home">إنهاء</button></div>
+    <article class="card"><div class="tags"><span class="tag plain">${esc(t.b)}</span><span class="tag">${esc(t.t)}</span></div><p class="lbl">صح ولا خطأ؟</p><div class="tfbox">${esc(truth?t.right:t.wrong)}</div>
+    <div id="ans"></div><div class="acts two" id="acts"><button class="good" id="tt">صح</button><button class="again" id="ff">خطأ</button></div></article>`;
+  on('#home',home);
+  const ans=p=>{ const good=p===truth; tick(good); $('#ans').innerHTML=`<p class="score" style="color:var(${good?'--accent':'--bad'})">${good?'صح':'غلط'}</p><div class="why"><b>✓ الصواب: </b>${esc(t.right)}${pgTxt(t.p)}</div><div class="trap"><b>✗ الخطأ الشائع: </b>${esc(t.wrong)}</div>`;
+    const a=$('#acts'); a.className='acts'; a.innerHTML='<button class="main" id="nx">التالي</button>'; on('#nx',()=>trapQ(Q,i+1,ok+(good?1:0))); };
+  on('#tt',()=>ans(true)); on('#ff',()=>ans(false));
+}
 // ===== تحديد المستوى: اللي تجاوبه صح يتأجل مباشرة =====
 function placeIntro(){
   const fresh=deck.filter(c=>!muted(c)&&!st[c.id]);
@@ -813,7 +882,7 @@ function nightShow(){
   const c=deck.find(x=>x.id===N.ids[N.i]); if(!c){N.i++;S.set('night:'+tr,N);return nightShow();}
   const nb=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${N.i+1}/${N.ids.length}</b><span>غلط ${N.bad}</span></span><span>ليلة الاختبار</span><button class="link" id="home">إيقاف</button></div>`;
   AM=()=>{const M=S.get('night:'+tr,N); M.i++; S.set('night:'+tr,M); nightShow();};
-  frame(c,'',`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div></div><div class="acts" id="acts"><button class="main" id="show">اكشف</button></div>`,nb);
+  frame(c,'',`<p class="q">${esc(c.q)}</p><div id="ans" hidden><div class="a">${esc(c.a)}</div>${extras(c)}</div><div class="acts" id="acts"><button class="main" id="show">اكشف</button></div>`,nb);
   const go=ok=>{ const M=S.get('night:'+tr,N); if(!ok){ learn(c,0,0); miss(c); M.bad++; } else tick(true); M.i++; S.set('night:'+tr,M); nightShow(); };
   on('#show',()=>{ $('#ans').hidden=false; const a=$('#acts'); a.className='acts two';
     a.innerHTML=`<button class="again" id="no">ما عرفتها</button><button class="good" id="yes">عرفتها</button>`+swipeHint;

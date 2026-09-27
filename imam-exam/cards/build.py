@@ -47,7 +47,24 @@ cards = sorted(enumerate(cards), key=lambda ic: (rank(ic[1]), ic[0]))
 cards = [c for _, c in cards]
 for c in cards:
     if c["b"] == "الصيد": c["b"] = "الصيد والذبائح"
+# محتوى «الفهم قبل الحفظ» (sheikh/content/c_*.json): شجرة الباب، القواعد، ليش هذا الجواب، الأخطاء الشائعة، الحالات العملية
+ids = {c["id"] for c in cards}
+content = []
+for f in sorted((SH / "content").glob("c_*.json")):
+    for ch in json.loads(f.read_text(encoding="utf-8")):
+        pg = lambda o: int(o.get("pdf", 0)) + 8   # رقم الصفحة المطبوع
+        why = {w["card"]: w for w in ch.get("why", []) if w.get("card") in ids}
+        for c in cards:
+            if c["id"] in why: c["y"] = why[c["id"]]["y"]
+        content.append({
+            "b": ch["b"],
+            "tree": [{"h": t["h"], "pts": t.get("pts", []), "p": pg(t)} for t in ch.get("tree", [])],
+            "rules": [{"r": r["r"], "p": pg(r), "cards": [i for i in r.get("cards", []) if i in ids]} for r in ch.get("rules", [])],
+            "traps": [{"t": t["t"], "right": t["right"], "wrong": t["wrong"], "p": pg(t), "card": t.get("card") if t.get("card") in ids else None} for t in ch.get("traps", [])],
+            "cases": [{"q": k["q"], "a": k["a"], "w": k["w"][:3], "p": pg(k), "card": k.get("card") if k.get("card") in ids else None} for k in ch.get("cases", []) if len(k.get("w", [])) >= 3],
+        })
 tpl = (D / "template.html").read_text(encoding="utf-8")
+tpl = tpl.replace("/*CONTENT*/[]", json.dumps(content, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 out = tpl.replace("/*CARDS*/[]", json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 (D / "index.html").write_text(out, encoding="utf-8")
-print(len(cards), "بطاقة،", sum(1 for c in cards if c.get("ex")), "بشرح،", sum(1 for c in cards if c.get("w")), "بخيارات")
+print(len(content), "باب بمحتوى،", sum(1 for c in cards if c.get("y")), "ليش،", len(cards), "بطاقة،", sum(1 for c in cards if c.get("ex")), "بشرح،", sum(1 for c in cards if c.get("w")), "بخيارات")
