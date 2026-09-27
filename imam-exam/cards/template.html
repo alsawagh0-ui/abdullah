@@ -142,13 +142,13 @@ function counts(){
 function home(){
   const k=counts(), left=Math.max(0,Math.ceil((EXAM-Date.now())/DAY));
   app.innerHTML=`<div class="home"><h1>بطاقات الفقه · ${tr==='imam'?'إمام':'مؤذن'}</h1>
-    <div class="stats"><div class="c-new"><b>${k.n}</b><span>جديدة</span></div><div class="c-learn"><b>${k.l}</b><span>تتعلمها</span></div>
+    <div class="stats"><div class="c-new"><b>${Math.min(k.n,lim())}</b><span>جديدة الحين</span></div><div class="c-learn"><b>${k.l}</b><span>تتعلمها</span></div>
       <div class="c-rev"><b>${k.r}</b><span>مراجعة اليوم</span></div><div class="c-done"><b>${k.d}</b><span>مؤجلة</span></div></div>
     <p class="lbl">الباب</p>
     <div class="chips" id="chs">${[['','كل الأبواب',deck]].concat([...new Set(deck.map(c=>c.b))].map(b=>[b,b,deck.filter(c=>c.b===b)])).map(([v,t,cs])=>`<button data-v="${esc(v)}" class="${chap()===v?'on':''}">${esc(t)}<small>${cs.filter(c=>st[c.id]).length}/${cs.length}</small></button>`).join('')}</div>
-    <p class="lbl">بطاقات جديدة في الجلسة</p>
+    <p class="lbl">بطاقات جديدة في الجلسة <span style="font-weight:400">(باقي في هذا الباب ${k.n} جديدة)</span></p>
     <div class="chips" id="lims">${[10,20,30,50].map(n=>`<button data-n="${n}" class="${lim()===n?'on':''}">${n}</button>`).join('')}</div>
-    <button class="big" id="go">${k.l+k.r+k.n?'ابدأ':'لا شيء الآن'}</button>
+    <button class="big" id="go">${k.l+k.r+k.n?'ابدأ'+(k.n?' · '+Math.min(k.n,lim())+' جديدة':''):'لا شيء الآن'}</button>
     <p class="note">باقي ${left} يوم على الاختبار. اختبر نفسك قدر ما تبي: اللي ما تعرفه يمر بالشرح ثم الاختيار ثم الحفظ ثم الكتابة، واللي تعرفه يتأجل. تقدر توقف متى ما تبي، وترجع تكمل من مكانك.</p>
     <p class="sync">${syncTxt()}</p>
     <button class="link" id="sw">تغيير المسار</button></div>`;
@@ -168,7 +168,7 @@ function queue(){
 }
 function bar(){
   const k=counts(), m=Math.floor((Date.now()-sessionStart)/MIN);
-  return `<div class="bar"><span class="cnt"><b style="color:var(--blue)">${k.n}</b><b style="color:var(--bad)">${k.l}</b><b style="color:var(--accent)">${k.r}</b></span><span>${m} دقيقة</span><button class="link" id="home">إنهاء</button></div>`;
+  return `<div class="bar"><span class="cnt"><b style="color:var(--blue)">${Math.max(0,Math.min(k.n,lim()-sessNew))}</b><b style="color:var(--bad)">${k.l}</b><b style="color:var(--accent)">${k.r}</b></span><span>${m} دقيقة</span><button class="link" id="home">إنهاء</button></div>`;
 }
 function frame(c,tag,body){
   app.innerHTML=bar()+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span>${tag}</div>${body}</article>`;
