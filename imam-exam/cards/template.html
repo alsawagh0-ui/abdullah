@@ -739,7 +739,7 @@ function finishExam(){
   const pct=Math.round(100*score/total), mastered=E.chapName&&pct>=90;
   if(mastered) X.mastered[E.chapName]=dkey();
   saveX();
-  page(E.chapName?'نتيجة اختبار الباب':'نتيجة الاختبار التجريبي',`<div class="stats" style="grid-template-columns:1fr 1fr 1fr"><div class="c-rev"><b>${score}/${total}</b><span>درجتك</span></div><div class="c-new"><b>${pct}%</b><span>النسبة</span></div><div class="c-done"><b>${mins}</b><span>دقيقة</span></div></div>
+  page(E.chapName?'نتيجة اختبار الباب':E.kind==='يومي'?'نتيجة اختبار اليوم':'نتيجة الاختبار التجريبي',`<div class="stats" style="grid-template-columns:1fr 1fr 1fr"><div class="c-rev"><b>${score}/${total}</b><span>درجتك</span></div><div class="c-new"><b>${pct}%</b><span>النسبة</span></div><div class="c-done"><b>${mins}</b><span>دقيقة</span></div></div>
     ${mastered?'<div class="banner ok">✓ أتقنت باب '+esc(E.chapName)+'</div>':E.chapName?'<div class="banner">تحتاج 90% عشان تتقن الباب. الغلط رجع لقائمة «تتعلمها».</div>':''}
     ${skipped?`<p class="note">ما جاوبت ${skipped} سؤال، وانحسبت بدون درجة.</p>`:''}
     ${wrong.length?`<p class="lbl">أخطاؤك (${wrong.length}) — رجعت لقائمة «تتعلمها»</p><button class="big alt small" id="rq">اختبرني في أخطائي الحين</button>`+rows(wrong.map(it=>it.c),true):'<div class="banner ok">ما غلطت ولا سؤال!</div>'}`);
