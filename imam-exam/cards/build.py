@@ -38,13 +38,30 @@ for f in sorted(V.glob("final_[0-9].json")):
             if x.get(k): c[k] = x[k]
         if len(x.get("w", [])) >= 3: c["w"] = x["w"][:3]
         cards.append(c)
+for c in cards: c["s"] = "fiqh"
+# بقية المواد من «الصفوة» (sheikh/safwa_cards) + بطاقات الأربعين المولّدة من جدول صفوة الحديث
+SC = SH / "safwa_cards"
+subj_of = {"s_aqeedah": "aqeedah", "s_nahw": "nahw", "s_tajweed": "tajweed", "s_mithaq": "mithaq", "s_hadith": "hadith", "h40": "hadith"}
+extra = []
+for stem, sj in subj_of.items():
+    f = SC / (stem + ".json")
+    if not f.exists(): continue
+    for x in json.loads(f.read_text(encoding="utf-8")):
+        c = {k: x[k] for k in ("id", "b", "q", "a", "ca", "w", "ex") if x.get(k)}
+        c["s"] = sj
+        if len(c.get("w", [])) != 3: c.pop("w", None)
+        if sj == "nahw" or x.get("for") == "imam": c["m"] = 1      # ليس في منهج المؤذن
+        if x.get("for") == "muadhin": c["o"] = 1                     # للمؤذن فقط
+        extra.append(c)
+MARKS = {"imam": {"fiqh": 60, "hadith": 10, "aqeedah": 10, "nahw": 10, "tafsir": 4, "tajweed": 4, "mithaq": 2},
+         "muadhin": {"fiqh": 50, "hadith": 20, "aqeedah": 10, "tafsir": 8, "tajweed": 8, "mithaq": 4}}
 ORDER = ["الطهارة", "الصلاة", "الجنائز", "الزكاة", "الصيام", "الحج", "البيوع", "النكاح", "الطلاق", "العدة", "الرضاع", "النفقات", "الأطعمة", "الصيد", "الذبائح", "الأيمان"]
 def rank(c):
     for i, k in enumerate(ORDER):
         if k in c["b"]: return i
     return len(ORDER)
 cards = sorted(enumerate(cards), key=lambda ic: (rank(ic[1]), ic[0]))
-cards = [c for _, c in cards]
+cards = [c for _, c in cards] + extra
 for c in cards:
     if c["b"] == "الصيد": c["b"] = "الصيد والذبائح"
 # محتوى «الفهم قبل الحفظ» (sheikh/content/c_*.json): شجرة الباب، القواعد، ليش هذا الجواب، الأخطاء الشائعة، الحالات العملية
@@ -65,6 +82,7 @@ for f in sorted((SH / "content").glob("c_*.json")):
         })
 content.sort(key=lambda k: rank({"b": k["b"]}))
 tpl = (D / "template.html").read_text(encoding="utf-8")
+tpl = tpl.replace("/*MARKS*/{}", json.dumps(MARKS))
 tpl = tpl.replace("/*CONTENT*/[]", json.dumps(content, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 out = tpl.replace("/*CARDS*/[]", json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 (D / "index.html").write_text(out, encoding="utf-8")

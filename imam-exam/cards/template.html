@@ -144,6 +144,8 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 <script>
 const CARDS=/*CARDS*/[];
 const CONTENT=/*CONTENT*/[];
+const MARKS=/*MARKS*/{};
+const SUBJ={fiqh:'الفقه',hadith:'الحديث',aqeedah:'العقيدة',nahw:'النحو',tajweed:'التجويد',tafsir:'التفسير',mithaq:'ميثاق المسجد'};
 const EXAM=new Date('2026-10-06T00:00:00+03:00').getTime(), MIN=6e4, DAY=864e5;
 const STEPS=['اشرح','اختر','من حفظك','اكتبها'];
 const S={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v);}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}};
@@ -190,7 +192,7 @@ const syncTxt=()=>synced?'تقدمك محفوظ في حسابك ✓':'تقدمك
 
 // ===== الإعدادات =====
 const lim=()=>S.get('lim','auto');
-const PASS=48, FINAL=3;
+const PASS=80, FINAL=3;
 const daysLeft=()=>Math.max(0,Math.ceil((EXAM-Date.now())/DAY));
 const newToday=()=>X.log[dkey()]?.nw||0;
 function plan(){ // كم بطاقة جديدة اليوم حتى تخلص كل شي قبل آخر 3 أيام
@@ -218,12 +220,17 @@ function pick(){
   on('#t-muadhin',()=>{tr='muadhin';S.set('track',tr);load();});
 }
 let sessNew=0;
-function load(){ if(!tr) return pick(); deck=CARDS.filter(c=>tr==='imam'||!c.m); st=S.get(key(),{}); X=Object.assign(blankX(),S.get(xkey(),{})); rdoc=null; synced=false; home(); syncInit(); }
+function load(){ if(!tr) return pick(); deck=CARDS.filter(c=>tr==='imam'?!c.o:!c.m); st=S.get(key(),{}); X=Object.assign(blankX(),S.get(xkey(),{})); rdoc=null; synced=false; home(); syncInit(); }
 const muted=c=>!!X.mute[c.id];
-const chapters=()=>[...new Set(deck.map(c=>c.b))];
+const sub=()=>S.get('sub:'+tr,'');
+const marks=()=>MARKS[tr]||{};
+const subjects=()=>Object.keys(marks()).filter(k=>deck.some(c=>c.s===k)).sort((a,b)=>marks()[b]-marks()[a]);
+const chapters=()=>[...new Set(deck.filter(c=>!sub()||c.s===sub()).map(c=>c.b))];
+const tagOf=c=>c.s&&c.s!=='fiqh'?SUBJ[c.s]+' · '+c.b:c.b;
 function pool(){
   const ch=chap(), f=flt();
-  return deck.filter(c=>!muted(c)&&(!ch||c.b===ch)&&(f==='all'||(f==='num'&&isNum(c))||(f==='star'&&X.star[c.id])||(f==='hard'&&(st[c.id]?.bad||0)>0)));
+  const sb=sub();
+  return deck.filter(c=>!muted(c)&&(!sb||c.s===sb)&&(!ch||c.b===ch)&&(f==='all'||(f==='num'&&isNum(c))||(f==='star'&&X.star[c.id])||(f==='hard'&&(st[c.id]?.bad||0)>0)));
 }
 
 // ===== السجل اليومي والهدف =====
@@ -244,28 +251,26 @@ function streak(){
 function miss(c){ const s=st[c.id]; if(s){s.bad=(s.bad||0)+1; s.u=Date.now();} save(); tick(false); }
 
 // ===== توقع الدرجة =====
+// من 100 بحسب درجات المقرر؛ المادة اللي ما لها بطاقات (التفسير) تُحسب 50%
 function predict(){
-  const cs=deck; if(!cs.length) return 0; let sum=0;
-  for(const c of cs){
-    const s=st[c.id]; let p;
-    if(muted(c)) p=.95; else if(!s) p=.15; else if(s.t==='l') p=.45+(s.step||0)*.05; else p=(s.iv||0)>=3?.92:.82;
-    p-=Math.min(.3,(s?.bad||0)*.03); sum+=Math.max(.1,p);
-  }
-  let v=60*sum/cs.length; const last=X.exams.filter(e=>e.k==='تجريبي'&&(e.done??e.total)>=40).pop();
-  if(last) v=(v+60*last.score/last.total)/2;
+  const M=marks(); let v=0, tot=0;
+  for(const k in M){ tot+=M[k]; const cs=deck.filter(c=>c.s===k); v+=M[k]*(cs.length?cs.reduce((a,c)=>a+cardP(c),0)/cs.length:.5); }
+  v=100*v/(tot||1);
+  const last=X.exams.filter(e=>e.k==='شامل'&&(e.done??e.total)>=35).pop();
+  if(last) v=(v+100*last.score/last.total)/2;
   return Math.round(v);
 }
 
 const cardP=c=>{ const s=st[c.id]; let p; if(muted(c)) p=.95; else if(!s) p=.15; else if(s.t==='l') p=.45+(s.step||0)*.05; else p=(s.iv||0)>=3?.92:.82; return Math.max(.1,p-Math.min(.3,(s?.bad||0)*.03)); };
 function passBox(){
-  const v=predict(), gain=.67*60/Math.max(1,deck.length), need=Math.max(0,Math.ceil((PASS-v)/gain));
-  const pct=Math.min(100,Math.round(100*v/60));
-  return `<div class="set"><div class="topline"><span class="lbl" style="margin:0">عداد النجاح</span><span><b style="font-size:1.4rem;color:var(${v>=PASS?'--accent':'--ink'})">${v}</b> <span class="x">من 60 · النجاح ${PASS}</span></span></div>
+  const v=predict(), gain=.67*100/Math.max(1,deck.length), need=Math.max(0,Math.ceil((PASS-v)/gain));
+  const pct=Math.min(100,v);
+  return `<div class="set"><div class="topline"><span class="lbl" style="margin:0">عداد النجاح</span><span><b style="font-size:1.4rem;color:var(${v>=PASS?'--accent':'--ink'})">${v}</b> <span class="x">من 100 · النجاح ${PASS}</span></span></div>
     <div class="meter" style="position:relative;height:10px"><i style="width:${pct}%;background:var(${v>=PASS?'--accent':'--warn'})"></i><b style="position:absolute;top:-3px;bottom:-3px;inset-inline-start:80%;width:2px;background:var(--ink)"></b></div>
     <p class="x" style="margin:0">${v>=PASS?'أنت فوق خط النجاح تقريباً ✓ ثبّت اللي عندك.':`باقي لك تقريباً <b>${PASS-v}</b> درجة، يعني تقريباً <b>${need}</b> بطاقة تتقنها.`}</p></div>`;
 }
 function mapGrid(){
-  return `<div class="mapg">${chapters().map(b=>{const cs=deck.filter(c=>c.b===b), p=cs.reduce((a,c)=>a+cardP(c),0)/cs.length, t=Math.max(0,Math.min(1,(p-.15)/.77)), h=Math.round(t*130);
+  return `<div class="mapg">${[...new Set(deck.map(c=>c.b))].map(b=>{const cs=deck.filter(c=>c.b===b), p=cs.reduce((a,c)=>a+cardP(c),0)/cs.length, t=Math.max(0,Math.min(1,(p-.15)/.77)), h=Math.round(t*130);
     return `<div style="background:hsl(${h} 55% 42%)"><b>${esc(b)}</b><small>${Math.round(100*t)}%${X.mastered[b]?' ✓':''}</small></div>`;}).join('')}</div>`;
 }
 // ===== الصفحة الرئيسية =====
@@ -289,7 +294,7 @@ function home(){
   const row=(v,t,cs)=>{const done=cs.filter(c=>st[c.id]?.t==='r'||muted(c)).length, pct=cs.length?Math.round(100*done/cs.length):0;
     return `<button data-v="${esc(v)}" class="${chap()===v?'on':''}"><span>${esc(t)}${v&&X.mastered[v]?' <b class="ms">✓</b>':''}</span><div class="meter"><i style="width:${pct}%"></i></div><small>${pct}% · ${done}/${cs.length}</small></button>`;};
   app.innerHTML=`<div class="home">
-    <div class="topline"><h1>بطاقات الفقه · ${tr==='imam'?'إمام':'مؤذن'}</h1><div class="fsz"><button id="fsm">A−</button><button id="fsp">A+</button></div></div>
+    <div class="topline"><h1>بطاقات الاختبار · ${tr==='imam'?'إمام':'مؤذن'}</h1><div class="fsz"><button id="fsm">A−</button><button id="fsp">A+</button></div></div>
     ${di.due?`<div class="banner">عندك ${di.due} بطاقة مستحقة الحين</div>`:(isFinite(di.nextT)?`<div class="banner ok">ما عليك مراجعة الحين ✓ الجاية بعد ${fmtIn(di.nextT-Date.now())}</div>`:'')}
     ${(()=>{const pl=plan(); return pl.final?'<div class="banner">🔒 آخر 3 أيام: ما فيه بطاقات جديدة، ثبّت اللي درسته بالمراجعة والاختبارات.</div>'
       :`<div class="banner ok">📅 خطة اليوم: <b>${pl.today}</b> بطاقة جديدة (خلصت ${newToday()}) + المراجعات. باقي ${pl.rem} جديدة على ${daysLeft()-FINAL} يوم.</div>`;})()}
@@ -300,8 +305,10 @@ function home(){
       <div class="c-rev"><b>${k.r}</b><span>مراجعة اليوم</span></div><div class="c-done"><b>${k.d}</b><span>مؤجلة</span></div></div>
     <p class="lbl">نوع البطاقات</p>
     <div class="chips" id="flts">${[['all','الكل'],['num','الأرقام بس'],['star','⭐ المعلّمة'],['hard','الأصعب']].map(([v,t])=>`<button data-f="${v}" class="${fl===v?'on':''}">${t}</button>`).join('')}</div>
-    <p class="lbl">الباب</p>
-    <div class="chaps" id="chs">${row('','كل الأبواب',deck.filter(c=>!muted(c)||1))}${chs.map(b=>row(b,b,deck.filter(c=>c.b===b))).join('')}</div>
+    <p class="lbl">المادة (الدرجة في المقرر)</p>
+    <div class="chips" id="subs"><button data-s="" class="${!sub()?'on':''}">الكل</button>${subjects().map(k=>`<button data-s="${k}" class="${sub()===k?'on':''}">${SUBJ[k]}<small>${marks()[k]}</small></button>`).join('')}</div>
+    <p class="lbl">${sub()?'الباب':'المواد'}</p>
+    <div class="chaps" id="chs">${sub()?row('','كل '+SUBJ[sub()],deck.filter(c=>c.s===sub()))+chs.map(b=>row(b,b,deck.filter(c=>c.b===b))).join(''):subjects().map(k=>row('@'+k,SUBJ[k]+' ('+marks()[k]+' درجة)',deck.filter(c=>c.s===k))).join('')}</div>
     <p class="lbl">بطاقات جديدة في الجلسة <span style="font-weight:400">(باقي ${k.n} جديدة)</span></p>
     <div class="chips" id="lims"><button data-n="auto" class="${lim()==='auto'?'on':''}">تلقائي (${plan().today})</button>${[10,20,30,50].map(n=>`<button data-n="${n}" class="${lim()===n?'on':''}">${n}</button>`).join('')}</div>
     <button class="big" id="go">${k.l+k.r+Math.min(k.n,newLeft())?'ابدأ'+(Math.min(k.n,newLeft())?' · '+Math.min(k.n,newLeft())+' جديدة':''):'لا شيء الآن'}</button>
@@ -312,6 +319,7 @@ function home(){
       ${CONTENT.length?`<button id="t-und" style="grid-column:1/-1;border-color:var(--blue)">🌳 فهم الباب<small>شجرة الباب، القواعد الجامعة، الأخطاء الشائعة</small></button>
       <button id="t-cases">🧑‍⚖️ حالات عملية<small>${CONTENT.reduce((a,k)=>a+k.cases.length,0)} حالة</small></button>
       <button id="t-traps">⚠️ الأخطاء الشائعة<small>صح ولا خطأ؟</small></button>`:''}
+      ${deck.some(c=>c.id==='h1r')?'<button id="t-h40" style="grid-column:1/-1;border-color:var(--accent)">📜 الأربعون النووية<small>الراوي، ومن أخرجه، وكم روى كل صحابي</small></button>':''}
       <button id="t-daily">⏱️ اختبار اليوم<small>10 أسئلة في 5 دقايق</small></button>
       <button id="t-sim">🔀 المتشابهات<small>شرط ولا ركن ولا واجب؟</small></button>
       <button id="t-lists">🧩 القوائم خطوة خطوة<small>العدد ثم العناصر</small></button>
@@ -334,7 +342,8 @@ function home(){
     <button class="link" id="sw">تغيير المسار</button></div>`;
   on('#fsm',()=>{S.set('fs',Math.max(.85,+(fs()-.1).toFixed(2)));applyFs();});
   on('#fsp',()=>{S.set('fs',Math.min(1.5,+(fs()+.1).toFixed(2)));applyFs();});
-  $$('#chs button').forEach(b=>b.onclick=()=>{S.set('ch:'+tr,b.dataset.v);home();});
+  $$('#chs button').forEach(b=>b.onclick=()=>{const v=b.dataset.v; if(v.startsWith('@')){S.set('sub:'+tr,v.slice(1));S.set('ch:'+tr,'');} else S.set('ch:'+tr,v); home();});
+  $$('#subs button').forEach(b=>b.onclick=()=>{S.set('sub:'+tr,b.dataset.s);S.set('ch:'+tr,'');home();});
   $$('#flts button').forEach(b=>b.onclick=()=>{S.set('flt:'+tr,b.dataset.f);home();});
   $$('#lims button').forEach(b=>b.onclick=()=>{S.set('lim',b.dataset.n==='auto'?'auto':+b.dataset.n);home();});
   on('#go',()=>{sessionStart=Date.now();sessNew=0;next();});
@@ -343,7 +352,7 @@ function home(){
   on('#t-mock',()=>mockIntro()); on('#t-cexam',()=>chapExamIntro()); on('#t-night',()=>night());
   on('#t-listen',()=>listenIntro()); on('#t-hard',()=>hardPage()); on('#t-star',()=>starPage());
   on('#t-search',()=>searchPage()); on('#t-read',()=>readPage()); on('#t-prog',()=>progPage()); on('#t-set',()=>setPage());
-  on('#t-und',()=>undPage()); on('#t-cases',()=>casesIntro()); on('#t-traps',()=>trapsQuiz());
+  on('#t-und',()=>undPage()); on('#t-h40',()=>h40Page()); on('#t-cases',()=>casesIntro()); on('#t-traps',()=>trapsQuiz());
   on('#t-place',()=>placeIntro()); on('#t-place2',()=>placeIntro()); on('#t-daily',()=>dailyIntro()); on('#t-sim',()=>simPage()); on('#t-lists',()=>listsIntro()); on('#t-nums',()=>numsPage()); on('#t-map',()=>page('🗺️ خريطة الإنجاز',mapGrid()+'<p class="note">الأحمر يعني ضعيف، والأخضر يعني متقن. ابدأ بالأحمر اللي حجمه كبير.</p>'));
 }
 
@@ -371,6 +380,18 @@ function wireTools(after){
 const mix=()=>S.get('mix',true);
 function mixNew(N){
   if(!mix()||chap()) return N;
+  if(!sub()){ // وزن المواد بدرجاتها: المادة الأقل إنجازاً نسبةً لوزنها تتقدم
+    const M=marks(), size={}, got={}, by={};
+    for(const c of deck){ size[c.s]=(size[c.s]||0)+1; if(st[c.id]||muted(c)) got[c.s]=(got[c.s]||0)+1; }
+    for(const c of mixChap(N)) (by[c.s]=by[c.s]||[]).push(c);
+    const out=[]; let left=N.length;
+    while(left){ let best=null,bv=Infinity; for(const k in by){ if(!by[k].length) continue; const v=((got[k]||0)/size[k])/Math.sqrt((M[k]||5)/60); if(v<bv){bv=v;best=k;} }
+      out.push(by[best].shift()); got[best]=(got[best]||0)+1; left--; }
+    return out;
+  }
+  return mixChap(N);
+}
+function mixChap(N){
   const by={}, size={}, got={};
   for(const c of deck){ size[c.b]=(size[c.b]||0)+1; if(st[c.id]||muted(c)) got[c.b]=(got[c.b]||0)+1; }
   for(const c of N) (by[c.b]=by[c.b]||[]).push(c);
@@ -400,7 +421,7 @@ function bar(){
 }
 function frame(c,tag,body,barHtml){
   SW=null;
-  app.innerHTML=(barHtml||bar())+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span>${tag}${cardTools(c)}</div>${body}</article>`;
+  app.innerHTML=(barHtml||bar())+`<article class="card"><div class="tags"><span class="tag plain">${esc(tagOf(c))}</span>${tag}${cardTools(c)}</div>${body}</article>`;
   on('#home',home); on('#undo',undo);
   const am=AM; AM=null; wireTools(am||next);
 }
@@ -497,6 +518,7 @@ function write(c){
 const STOP=new Set(['التي','الذي','الذين','وهو','وهي','فيه','فيها','عليه','عليها','إلى','على','حتى','إذا','إلا','ولا','وإن','لغير','بلا','كان','يكون','منه','منها','بعد','قبل','عند','أو','ذلك','هذا','مع','كل','غير','بين','ولو','إن','أن','لم','لا','ما','من','في','عن','بها','به','له','لها','فإن','وإلا','أي','ثم','فلا','وفي','وهما','وما','ومن']);
 const toks=a=>String(a).split(/([\s،.؛:()«»]+)/);
 function blankItem(c){ // أكمل الفراغ: تُخفى كلمة من جواب البطاقة، والخيارات كلمات من أجوبة الباب نفسه
+  if(c.s&&c.s!=='fiqh') return null;
   const T=toks(c.a); const cand=T.map((w,i)=>[w,i]).filter(([w])=>w.replace(/^[وبفل]/,'').length>=4&&!STOP.has(w)&&!/[\s،.؛:()«»]/.test(w));
   if(cand.length<2) return null;
   const num=cand.filter(([w])=>NUMRE.test(' '+w)), src=num.length&&Math.random()<.5?num:cand, [word,idx]=src[Math.floor(Math.random()*src.length)];
@@ -668,8 +690,12 @@ function buildExam(n,from){
     return {c,type:'tf',truth:true,shown:c.ca||c.a}; });
 }
 function mockIntro(){
-  page('📝 اختبار تجريبي',`<p class="note" style="text-align:right">60 سؤال عشوائي من كل الأبواب بنفس نسبة كل باب، اختيار من متعدد وصح أو خطأ. عندك 60 دقيقة. ما تشوف الصح والغلط إلا في الأخير، مثل الاختبار الحقيقي.</p><button class="big" id="st">ابدأ الاختبار</button>`);
-  on('#st',()=>startExam(buildExam(60,deck),'تجريبي',60));
+  const M=marks(), subs=subjects(), tot=subs.reduce((a,k)=>a+M[k],0), N=50;
+  const plan2=subs.map(k=>[k,Math.max(2,Math.round(N*M[k]/tot))]);
+  page('📝 اختبار تجريبي شامل',`<p class="note" style="text-align:right">${N} سؤال من كل المواد بنسبة درجاتها في المقرر: ${plan2.map(([k,n])=>SUBJ[k]+' '+n).join('، ')}. عندك 60 دقيقة. ما تشوف الصح والغلط إلا في الأخير.</p><button class="big" id="st">ابدأ الاختبار</button>
+    <button class="big alt" id="st2">اختبار الفقه بس (60 سؤال)</button>`);
+  on('#st',()=>{ const items=plan2.flatMap(([k,n])=>buildExam(n,deck.filter(c=>c.s===k))); startExam(shuffle(items),'شامل',60); });
+  on('#st2',()=>startExam(buildExam(60,deck.filter(c=>c.s==='fiqh')),'فقه',60));
 }
 function chapExamIntro(){
   const ch=chap();
@@ -687,7 +713,7 @@ function examShow(){
   const top=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${EX.i+1}/${EX.items.length}</b></span><span id="clock">${Math.floor(ms/MIN)}:${String(Math.floor(ms%MIN/1000)).padStart(2,'0')}</span><button class="link" id="fin">سلّم الاختبار</button></div>`;
   const body=it.type==='mcq'||it.type==='blank'?`<p class="q">${esc(c.q)}</p>${it.type==='blank'?`<p class="lbl">أكمل الفراغ:</p><div class="tfbox">${it.html}</div>`:''}<div class="opts">${it.opts.map((o,i)=>`<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}</div>`
     :`<p class="q">${esc(c.q)}</p><p class="lbl">هل هذا الجواب صحيح؟</p><div class="tfbox">${esc(it.shown)}</div><div class="acts two"><button class="good" data-t="1">صح</button><button class="again" data-t="0">خطأ</button></div>`;
-  app.innerHTML=top+`<article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span><span class="tag">${it.type==='mcq'?'اختيار':it.type==='blank'?'أكمل الفراغ':'صح أو خطأ'}</span>${EX.place?'<button class="ibtn" id="idk" style="margin-inline-start:auto">ما أدري</button>':''}</div>${body}</article>`;
+  app.innerHTML=top+`<article class="card"><div class="tags"><span class="tag plain">${esc(tagOf(c))}</span><span class="tag">${it.type==='mcq'?'اختيار':it.type==='blank'?'أكمل الفراغ':'صح أو خطأ'}</span>${EX.place?'<button class="ibtn" id="idk" style="margin-inline-start:auto">ما أدري</button>':''}</div>${body}</article>`;
   const answer=ok=>{ EX.ans[EX.i]=ok; EX.i++; EX.i<EX.items.length?examShow():finishExam(); };
   $$('.opt').forEach(b=>b.onclick=()=>answer(it.opts[+b.dataset.i]===it.right));
   on('#idk',()=>answer(false));
@@ -788,7 +814,7 @@ function listQuiz(Q,i,ok){
     body=`<p class="q">${esc(c.q)}</p><p class="lbl">وش الناقص؟ (${esc(x.r.count)})</p><div class="tfbox">${x.r.items.map((t,j)=>j===x.m?'<b style="color:var(--accent)">؟؟؟</b>':esc(t)).join('، ')}</div>`;
   }
   app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${i+1}/${Q.length}</b><span>صح ${ok}</span></span><span>القوائم</span><button class="link" id="home">إنهاء</button></div>
-    <article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span></div>${body}<div class="opts">${opts.map((o,j)=>`<button class="opt" data-i="${j}">${esc(o)}</button>`).join('')}</div><div id="ans"></div><div class="acts" id="acts"></div></article>`;
+    <article class="card"><div class="tags"><span class="tag plain">${esc(tagOf(c))}</span></div>${body}<div class="opts">${opts.map((o,j)=>`<button class="opt" data-i="${j}">${esc(o)}</button>`).join('')}</div><div id="ans"></div><div class="acts" id="acts"></div></article>`;
   on('#home',home);
   $$('.opt').forEach(b=>b.onclick=()=>{ const good=opts[+b.dataset.i]===right;
     $$('.opt').forEach(o=>{o.disabled=true; if(opts[+o.dataset.i]===right) o.classList.add('right');}); if(!good) b.classList.add('wrong');
@@ -852,6 +878,19 @@ function trapQ(Q,i,ok){
     const a=$('#acts'); a.className='acts'; a.innerHTML='<button class="main" id="nx">التالي</button>'; on('#nx',()=>trapQ(Q,i+1,ok+(good?1:0))); };
   on('#tt',()=>ans(true)); on('#ff',()=>ans(false));
 }
+// ===== الأربعون النووية: الراوي ومن أخرجه =====
+function h40Rows(){ const R=[]; for(let n=1;n<=42;n++){ const r=deck.find(c=>c.id==='h'+n+'r'), x=deck.find(c=>c.id==='h'+n+'x'); if(r) R.push({n,start:(r.q.match(/«(.+)»/)||[])[1]||'',rawi:r.ca||r.a,rec:x?x.ca||x.a:'',r,x}); } return R; }
+function h40Page(){
+  const R=h40Rows();
+  page('📜 الأربعون: الراوي ومن أخرجه',`<p class="note" style="text-align:right">اقرأ الجدول، وبعدين اختبر نفسك. البطاقات تتكرر عليك لين تحفظها: من الراوي؟ من أخرجه؟ كم روى أبو هريرة؟</p>
+    <div class="tools"><button id="q1">🎯 من الراوي؟<small>42 حديث</small></button><button id="q2">📚 من أخرجه؟<small>42 حديث</small></button><button id="q3">🔢 الرواة والعدد<small>كم روى كل صحابي</small></button><button id="q4">🔀 خلطهم كلهم<small>20 سؤال</small></button></div>
+    <div style="overflow-x:auto"><table class="tbl"><tr><th>#</th><th>الحديث</th><th>الراوي</th><th>أخرجه</th></tr>${R.map(x=>`<tr><td>${x.n}</td><td>${esc(x.start)}</td><td><b>${esc(x.rawi)}</b></td><td>${esc(x.rec)}</td></tr>`).join('')}</table></div>`);
+  const H=deck.filter(c=>c.s==='hadith'&&/^الأربعون/.test(c.b));
+  on('#q1',()=>cram(H.filter(c=>c.b==='الأربعون: الراوي'),'من الراوي؟',h40Page));
+  on('#q2',()=>cram(H.filter(c=>c.b==='الأربعون: من أخرجه'),'من أخرجه؟',h40Page));
+  on('#q3',()=>cram(H.filter(c=>c.b==='الأربعون: الرواة والعدد'),'الرواة والعدد',h40Page));
+  on('#q4',()=>cram(H,'الأربعون',h40Page));
+}
 // ===== تحديد المستوى: اللي تجاوبه صح يتأجل مباشرة =====
 function placeIntro(){
   const fresh=deck.filter(c=>!muted(c)&&!st[c.id]);
@@ -907,7 +946,7 @@ async function listenRun(){
   try{ navigator.wakeLock?.request('screen').catch(()=>{}); }catch(e){}
   const list=shuffle(pool().slice()); let i=0;
   const render=(c,phase)=>{ app.innerHTML=`<div class="bar"><span class="cnt"><b style="color:var(--accent)">${i+1}/${list.length}</b></span><span>🎧 استماع</span><button class="link" id="home">إنهاء</button></div>
-    <article class="card"><div class="tags"><span class="tag plain">${esc(c.b)}</span></div><p class="q">${esc(c.q)}</p><div class="a" ${phase?'':'hidden'}>${esc(c.a)}</div>
+    <article class="card"><div class="tags"><span class="tag plain">${esc(tagOf(c))}</span></div><p class="q">${esc(c.q)}</p><div class="a" ${phase?'':'hidden'}>${esc(c.a)}</div>
     <div class="acts two"><button id="pz">${me.paused?'▶ كمّل':'⏸ إيقاف مؤقت'}</button><button id="sk">التالي ⟵</button></div></article>`;
     on('#home',()=>{stopSpeech();home();}); on('#pz',()=>{me.paused=!me.paused; if(me.paused) speechSynthesis.cancel(); render(c,phase);}); on('#sk',()=>{me.skip=true;speechSynthesis.cancel();}); };
   while(!me.stop&&i<list.length){
