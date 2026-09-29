@@ -7,7 +7,7 @@ python3 "$ROOT/imam-exam/build.py"
 cp "$ROOT/website/exam/index.html" "$PUB/index.html"
 # بطاقات الاختبار: نسخة عامة بلا تسجيل دخول (التقدم يُحفظ على الجهاز)
 python3 "$ROOT/imam-exam/cards/build.py" >/dev/null
-mkdir -p "$PUB/cards" && cp "$ROOT/imam-exam/cards/index.html" "$PUB/cards/index.html"
+mkdir -p "$PUB/cards" && cp "$ROOT/imam-exam/cards/public.html" "$PUB/cards/index.html"
 mkdir -p "$PUB/src" "$PUB/safwa"
 cp "$ROOT"/imam-exam/safwa/*.pdf "$PUB/safwa/"
 cp "$ROOT/imam-exam/build.py" "$ROOT/imam-exam/template.html" "$PUB/src/"

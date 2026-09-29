@@ -102,4 +102,10 @@ tpl = tpl.replace("/*CLIPS*/[]", json.dumps(clips, ensure_ascii=False, separator
 tpl = tpl.replace("/*CONTENT*/[]", json.dumps(content, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 out = tpl.replace("/*CARDS*/[]", json.dumps(cards, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 (D / "index.html").write_text(out, encoding="utf-8")
+# نسخة عامة (GitHub Pages): تحتاج ترويسة كاملة وإلا يطلع الجوال مصغّراً
+pub = ('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">'
+       '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+       '<meta name="theme-color" content="#145C49"><meta name="apple-mobile-web-app-capable" content="yes">'
+       '<meta name="apple-mobile-web-app-title" content="بطاقات الاختبار"></head><body style="margin:0">' + out + '</body></html>')
+(D / "public.html").write_text(pub, encoding="utf-8")
 print(len(content), "باب بمحتوى،", sum(1 for c in cards if c.get("y")), "ليش،", len(cards), "بطاقة،", sum(1 for c in cards if c.get("ex")), "بشرح،", sum(1 for c in cards if c.get("w")), "بخيارات")
