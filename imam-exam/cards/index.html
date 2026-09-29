@@ -1208,35 +1208,53 @@ function h40Simple(){
 // قائمة بسيطة بلا أزرار (نتائج الاختبار)
 function rows(list){ if(!list.length) return ''; return `<div class="list">${list.map(c=>`<div class="row"><div class="rq">${esc(c.q)}</div><div class="ra">${esc(c.a)}</div></div>`).join('')}</div>`; }
 
-// ===== مراجعة مفيد الصاحب: يُعرض السؤال، تذكره من حفظك، ثم تكشف وتقيّم نفسك =====
+// ===== مراجعة مفيد الصاحب: باب باب بالترتيب =====
+// المستوى: 0 جديد، 1 نسيت، 2 ذكرته مرة، 3 أتقنته (مرتين)، 9 «حافظه، لا تعيده»
 const mdeck=()=>MUFID.filter(c=>tr==='imam'||!c.m);
-const mlev=id=>(X.muf||{})[id]||0;   // 0 جديد، 1 ناقص، 2 ذكرته كامل
+const mlev=id=>(X.muf||{})[id]||0;
+const mset=(id,v)=>{ X.muf=X.muf||{}; X.muf[id]=v; saveX(); };
+const mgroups=()=>[...new Set(mdeck().map(c=>c.g))];
+function mstat(g){ const cs=mdeck().filter(c=>c.g===g), act=cs.filter(c=>mlev(c.id)!==9);
+  return {cs, act, done:act.filter(c=>mlev(c.id)>=3).length, skip:cs.length-act.length, ok:act.every(c=>mlev(c.id)>=3)}; }
 function mufPage(){
-  const D=mdeck(), gs=[...new Set(D.map(c=>c.g))], ok=D.filter(c=>mlev(c.id)===2).length;
-  page('📗 مراجعة مفيد الصاحب',`<p class="note" style="text-align:right;font-size:1rem">يطلع لك السؤال، قوله بصوتك من حفظك، وبعدين اضغط «اكشف» وقارن.</p>
-    <div class="meter" style="height:10px"><i style="width:${Math.round(100*ok/D.length)}%"></i></div><p class="note">ذكرت ${ok} من ${D.length} كاملة</p>
-    <div class="menu"><button data-g=""><span>📗</span><b>كل الأبواب</b><small>${D.length} سؤال</small></button>
-    ${gs.map(g=>{const cs=D.filter(c=>c.g===g), k=cs.filter(c=>mlev(c.id)===2).length; return `<button data-g="${esc(g)}"><span>${k===cs.length?'✅':'📄'}</span><b>${esc(g)}</b><small>${k} من ${cs.length}</small></button>`;}).join('')}</div>`);
-  $$('.menu button').forEach(b=>b.onclick=()=>{ const g=b.dataset.g; const cs=D.filter(c=>!g||c.g===g);
-    const order=[...cs.filter(c=>mlev(c.id)===1),...cs.filter(c=>mlev(c.id)===0),...shuffle(cs.filter(c=>mlev(c.id)===2))];
-    mufRun(order.slice(0,15),0,0,g); });
+  const gs=mgroups(), cur=gs.find(g=>!mstat(g).ok);
+  const tot=mdeck().filter(c=>mlev(c.id)!==9).length, left=mdeck().filter(c=>{const l=mlev(c.id);return l!==9&&l<3;}).length;
+  page('📗 مفيد الصاحب',`<p class="note" style="text-align:right;font-size:1rem">امشِ باب باب: أتقن الباب (كل سؤال تذكره كامل مرتين) وبعدين روح للي بعده. وأي سؤال حافظه زين اضغط «حافظه، لا تعيده» وما يرجع لك.</p>
+    <div class="today"><b>${left}</b><span>سؤال باقي عليك تراجعه</span></div>
+    <div class="menu">${gs.map((g,i)=>{ const m=mstat(g), isCur=g===cur;
+      return `<button data-g="${esc(g)}" style="${isCur?'border:2px solid var(--accent);background:var(--soft)':''}"><span>${m.ok?'✅':isCur?'▶':(i+1)}</span><b>${esc(g)}${isCur?' <small style="color:var(--accent)">← ابدأ هنا</small>':''}</b><small>أتقنت ${m.done} من ${m.act.length}${m.skip?` · ${m.skip} حافظها`:''}</small></button>`;}).join('')}</div>`);
+  $$('.menu button').forEach(b=>b.onclick=()=>mufGroup(b.dataset.g));
+}
+function mufGroup(g){
+  const m=mstat(g), sk=m.cs.filter(c=>mlev(c.id)===9);
+  const L=l=>m.act.filter(c=>mlev(c.id)===l);
+  const order=[...L(1),...L(0),...L(2)], extra=shuffle(L(3));
+  if(!order.length&&!sk.length&&!extra.length) return mufPage();
+  page('📗 '+esc(g),`<div class="today"><b>${m.done}/${m.act.length}</b><span>${m.ok?'أتقنت الباب ✓':'أتقنت'}</span></div>
+    ${order.length?`<button class="big" id="go">ابدأ (${Math.min(15,order.length)} سؤال)</button>`:(extra.length?`<button class="big" id="go">راجع الباب مرة ثانية</button>`:'')}
+    ${sk.length?`<p class="lbl">حافظها ولا تراجعها (${sk.length}) — اضغط أي وحدة ترجعها للمراجعة</p><div class="list">${sk.map(c=>`<button class="row" data-back="${c.id}" style="text-align:right;color:var(--ink)"><div class="rq">${esc(c.q)}</div><small class="x">↩ رجّعها</small></button>`).join('')}</div>`:''}`,mufPage);
+  on('#go',()=>mufRun((order.length?order:extra).slice(0,15),0,0,g));
+  $$('[data-back]').forEach(b=>b.onclick=()=>{ mset(b.dataset.back,1); mufGroup(g); });
 }
 function mufRun(Q,i,ok,g){
   SW=null;
-  if(!Q.length||i>=Q.length){ page('📗 خلصت الجولة',`<div class="today"><b>${ok}/${Q.length}</b><span>ذكرتها كاملة</span></div><button class="big" id="again">جولة ثانية</button><button class="big alt" id="bk">رجوع</button>`,mufPage); on('#again',()=>{ const cs=mdeck().filter(c=>!g||c.g===g); mufRun([...cs.filter(c=>mlev(c.id)<2),...shuffle(cs.filter(c=>mlev(c.id)===2))].slice(0,15),0,0,g); }); on('#bk',mufPage); return; }
-  const c=Q[i], pct=Math.round(100*i/Q.length);
+  if(i>=Q.length){ const m=mstat(g);
+    page('📗 خلصت الجولة',`<div class="today"><b>${ok}/${Q.length}</b><span>ذكرتها كاملة</span></div>${m.ok?'<div class="banner ok">✅ أتقنت باب '+esc(g)+'، روح للباب اللي بعده</div>':''}<button class="big" id="again">${m.ok?'الباب التالي':'كمّل هذا الباب'}</button><button class="big alt" id="bk">رجوع</button>`,mufPage);
+    on('#again',()=>{ if(m.ok){ const nx=mgroups().find(x=>!mstat(x).ok); nx?mufGroup(nx):mufPage(); } else mufGroup(g); }); on('#bk',mufPage); return; }
+  const c=Q[i], pct=Math.round(100*i/Q.length), lv=mlev(c.id);
   app.innerHTML=`<div class="bar"><button class="link" id="x">✕</button><div class="meter" style="flex:1"><i style="width:${pct}%"></i></div><span>${i}/${Q.length}</span></div>
-    <article class="card"><p class="lbl" style="margin:0">مفيد الصاحب · ${esc(c.g)}</p><p class="q">${esc(c.q)}</p>
+    <article class="card"><p class="lbl" style="margin:0">${esc(g)}${lv===2?' · باقي مرة وتتقنه':''}</p><p class="q">${esc(c.q)}</p>
     <p class="note" style="text-align:right;margin:0">اذكر ${c.need===c.pts.length?`الـ${c.pts.length} كلها`:`${c.need} منها`} من حفظك</p>
     <div id="ans" hidden><ol class="mpts">${c.pts.map(t=>`<li>${esc(t)}</li>`).join('')}</ol></div>
     <div class="acts" id="acts"><button class="main" id="show">اكشف الجواب</button></div></article>`;
-  on('#x',mufPage);
-  on('#show',()=>{ $('#ans').hidden=false; const a=$('#acts'); a.className='acts two';
-    a.innerHTML=`<button class="again" id="no">نسيت شي</button><button class="good" id="yes">ذكرتها كاملة</button>`;
-    const res=good=>{ X.muf=X.muf||{}; X.muf[c.id]=good?2:1; saveX(); tick(good);
-      if(!good&&!(c._r)){ c._r=1; Q.splice(Math.min(Q.length,i+4),0,c); }
+  on('#x',()=>mufGroup(g));
+  on('#show',()=>{ $('#ans').hidden=false; const a=$('#acts'); a.className='acts';
+    a.innerHTML=`<div class="acts two"><button class="again" id="no">نسيت شي</button><button class="good" id="yes">ذكرتها كاملة</button></div><button class="link" id="skip" style="justify-self:center">✓ حافظه زين، لا تعيده</button>`;
+    const res=good=>{ tick(good);
+      if(good) mset(c.id,Math.max(2,Math.min(3,lv+1))); else { mset(c.id,1); if(!c._r){ c._r=1; Q.splice(Math.min(Q.length,i+4),0,c); } }
       mufRun(Q,i+1,ok+(good?1:0),g); };
-    on('#no',()=>res(false)); on('#yes',()=>res(true)); SW={yes:()=>res(true),no:()=>res(false)}; });
+    on('#no',()=>res(false)); on('#yes',()=>res(true)); on('#skip',()=>{ mset(c.id,9); mufRun(Q,i+1,ok+1,g); });
+    SW={yes:()=>res(true),no:()=>res(false)}; });
 }
 applyFs();
 load();
