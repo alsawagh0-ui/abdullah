@@ -23,7 +23,10 @@ def xshort(r):
     found = [nm for _, nm in sorted(found)]
     return " و".join(found)
 def start(r): return plain(r["start"])
-for r in rows: r["rs"], r["xs"] = rshort(r), xshort(r)
+# نفس الصحابي بأسماء مختلفة في الجدول: نوحّد الاسم المختصر عشان ما يطلع خياران لشخص واحد
+CANON = {"عبد الله بن عمر": "ابن عمر", "عبد الله بن مسعود": "ابن مسعود", "عبد الله بن عباس": "ابن عباس",
+         "أبو ذر الغفاري": "أبو ذر", "سعد بن مالك بن سنان الخدري": "أبو سعيد الخدري", "أنس": "أنس بن مالك"}
+for r in rows: r["rs"], r["xs"] = CANON.get(rshort(r), rshort(r)), xshort(r)
 random.seed(40)
 cards = []
 def opts(right, pool):
