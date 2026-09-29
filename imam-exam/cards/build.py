@@ -89,6 +89,14 @@ for f in sorted((SH).glob("h40_clips_[ab].json")):
                       "ask": [{"q": q["q"], "a": q["a"], "w": q["w"][:3]} for q in c.get("ask", []) if len(q.get("w", [])) >= 3]})
 clips.sort(key=lambda c: c["n"])
 clips = []   # مقاطع القصص أُلغيت بطلب المستخدم (ستُستبدل بفيديوهات بصوت)
+import re as _re
+_MU = _re.compile(r"البيوع|الربا|النكاح|العدة|الرضاع|النفقات|الأطعمة|الصيد|الأيمان|النذور")
+mufid = []
+for c in json.loads((D.parent / "mufid.json").read_text(encoding="utf-8")):
+    x = {"id": c["id"], "g": c["g"], "q": c["q"], "pts": c["pts"], "need": c["need"]}
+    if _MU.search(c["g"]): x["m"] = 1        # معاملات: للإمام فقط
+    mufid.append(x)
+tpl = tpl.replace("/*MUFID*/[]", json.dumps(mufid, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 tpl = tpl.replace("/*MARKS*/{}", json.dumps(MARKS))
 tpl = tpl.replace("/*CLIPS*/[]", json.dumps(clips, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))
 tpl = tpl.replace("/*CONTENT*/[]", json.dumps(content, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/"))

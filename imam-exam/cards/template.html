@@ -177,6 +177,7 @@ textarea{width:100%;min-height:120px;padding:12px;border-radius:10px;border:1px 
 .menu button{display:grid;grid-template-columns:40px 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;text-align:right;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
 .menu button span{grid-row:1/3;font-size:1.6rem;text-align:center}
 .menu button b{font-size:1.1rem} .menu button small{color:var(--muted)}
+.mpts{margin:0;padding-inline-start:22px;display:grid;gap:6px;font-family:"Noto Naskh Arabic",serif;font-size:1.12em;line-height:1.8;border-top:1px solid var(--line);padding-top:12px}
 .big.small{font-size:1rem;padding:13px}
 </style>
 
@@ -187,6 +188,7 @@ const CARDS=/*CARDS*/[];
 const CONTENT=/*CONTENT*/[];
 const MARKS=/*MARKS*/{};
 const CLIPS=/*CLIPS*/[];
+const MUFID=/*MUFID*/[];
 const SUBJ={fiqh:'الفقه',hadith:'الحديث',aqeedah:'العقيدة',nahw:'النحو',tajweed:'التجويد',tafsir:'التفسير',mithaq:'ميثاق المسجد'};
 const EXAM=new Date('2026-10-06T00:00:00+03:00').getTime(), MIN=6e4, DAY=864e5;
 const STEPS=['اشرح','اختر','من حفظك','اكتبها'];
@@ -1134,6 +1136,7 @@ function home(){
     <div><div class="meter" style="height:10px"><i style="width:${pct}%"></i></div><p class="note" style="margin-top:6px">حفظت ${known} من ${deck.length} (${pct}%)</p></div>
     <div class="menu">
       <button id="subj"><span>📚</span><b>ذاكر مادة معينة</b><small>${subjects().map(k=>SUBJ[k]).join('، ')}</small></button>
+      <button id="muf"><span>📗</span><b>مراجعة مفيد الصاحب</b><small>لمن حفظه: السؤال وأنت تذكر الجواب</small></button>
       <button id="mock"><span>📝</span><b>اختبار تجريبي</b><small>مثل الاختبار الحقيقي</small></button>
       <button id="mist"><span>❌</span><b>أخطائي</b><small>${bad?bad+" سؤال":"ولا غلطة للحين"}</small></button>
       ${deck.some(c=>c.id==='h1r')?'<button id="h40"><span>📜</span><b>الأربعين النووية</b><small>الراوي ومن أخرجه</small></button>':''}
@@ -1147,7 +1150,7 @@ function home(){
     on('#st',()=>startExam(shuffle(items),'شامل',60)); });
   on('#mist',()=>{ const l=deck.filter(c=>(st[c.id]?.bad||0)>0&&!muted(c)).sort((a,b)=>st[b.id].bad-st[a.id].bad).slice(0,20);
     l.length?run(l,'أخطائي'):page('❌ أخطائي','<p class="note" style="font-size:1rem">ما عندك أخطاء للحين 👍</p>'); });
-  on('#h40',h40Simple); on('#subj',subjPage);
+  on('#h40',h40Simple); on('#subj',subjPage); on('#muf',mufPage);
   on('#sw',()=>{tr=null;S.set('track',null);pick();});
 }
 // جلسة بسيطة: كل بطاقة تُسأل؛ الغلط يرجع بعد 3 بطاقات لين تعرفه
@@ -1204,6 +1207,37 @@ function h40Simple(){
 }
 // قائمة بسيطة بلا أزرار (نتائج الاختبار)
 function rows(list){ if(!list.length) return ''; return `<div class="list">${list.map(c=>`<div class="row"><div class="rq">${esc(c.q)}</div><div class="ra">${esc(c.a)}</div></div>`).join('')}</div>`; }
+
+// ===== مراجعة مفيد الصاحب: يُعرض السؤال، تذكره من حفظك، ثم تكشف وتقيّم نفسك =====
+const mdeck=()=>MUFID.filter(c=>tr==='imam'||!c.m);
+const mlev=id=>(X.muf||{})[id]||0;   // 0 جديد، 1 ناقص، 2 ذكرته كامل
+function mufPage(){
+  const D=mdeck(), gs=[...new Set(D.map(c=>c.g))], ok=D.filter(c=>mlev(c.id)===2).length;
+  page('📗 مراجعة مفيد الصاحب',`<p class="note" style="text-align:right;font-size:1rem">يطلع لك السؤال، قوله بصوتك من حفظك، وبعدين اضغط «اكشف» وقارن.</p>
+    <div class="meter" style="height:10px"><i style="width:${Math.round(100*ok/D.length)}%"></i></div><p class="note">ذكرت ${ok} من ${D.length} كاملة</p>
+    <div class="menu"><button data-g=""><span>📗</span><b>كل الأبواب</b><small>${D.length} سؤال</small></button>
+    ${gs.map(g=>{const cs=D.filter(c=>c.g===g), k=cs.filter(c=>mlev(c.id)===2).length; return `<button data-g="${esc(g)}"><span>${k===cs.length?'✅':'📄'}</span><b>${esc(g)}</b><small>${k} من ${cs.length}</small></button>`;}).join('')}</div>`);
+  $$('.menu button').forEach(b=>b.onclick=()=>{ const g=b.dataset.g; const cs=D.filter(c=>!g||c.g===g);
+    const order=[...cs.filter(c=>mlev(c.id)===1),...cs.filter(c=>mlev(c.id)===0),...shuffle(cs.filter(c=>mlev(c.id)===2))];
+    mufRun(order.slice(0,15),0,0,g); });
+}
+function mufRun(Q,i,ok,g){
+  SW=null;
+  if(!Q.length||i>=Q.length){ page('📗 خلصت الجولة',`<div class="today"><b>${ok}/${Q.length}</b><span>ذكرتها كاملة</span></div><button class="big" id="again">جولة ثانية</button><button class="big alt" id="bk">رجوع</button>`,mufPage); on('#again',()=>{ const cs=mdeck().filter(c=>!g||c.g===g); mufRun([...cs.filter(c=>mlev(c.id)<2),...shuffle(cs.filter(c=>mlev(c.id)===2))].slice(0,15),0,0,g); }); on('#bk',mufPage); return; }
+  const c=Q[i], pct=Math.round(100*i/Q.length);
+  app.innerHTML=`<div class="bar"><button class="link" id="x">✕</button><div class="meter" style="flex:1"><i style="width:${pct}%"></i></div><span>${i}/${Q.length}</span></div>
+    <article class="card"><p class="lbl" style="margin:0">مفيد الصاحب · ${esc(c.g)}</p><p class="q">${esc(c.q)}</p>
+    <p class="note" style="text-align:right;margin:0">اذكر ${c.need===c.pts.length?`الـ${c.pts.length} كلها`:`${c.need} منها`} من حفظك</p>
+    <div id="ans" hidden><ol class="mpts">${c.pts.map(t=>`<li>${esc(t)}</li>`).join('')}</ol></div>
+    <div class="acts" id="acts"><button class="main" id="show">اكشف الجواب</button></div></article>`;
+  on('#x',mufPage);
+  on('#show',()=>{ $('#ans').hidden=false; const a=$('#acts'); a.className='acts two';
+    a.innerHTML=`<button class="again" id="no">نسيت شي</button><button class="good" id="yes">ذكرتها كاملة</button>`;
+    const res=good=>{ X.muf=X.muf||{}; X.muf[c.id]=good?2:1; saveX(); tick(good);
+      if(!good&&!(c._r)){ c._r=1; Q.splice(Math.min(Q.length,i+4),0,c); }
+      mufRun(Q,i+1,ok+(good?1:0),g); };
+    on('#no',()=>res(false)); on('#yes',()=>res(true)); SW={yes:()=>res(true),no:()=>res(false)}; });
+}
 applyFs();
 load();
 </script>
