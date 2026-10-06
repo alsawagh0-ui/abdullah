@@ -487,7 +487,7 @@ function show(c){
   [explain,mcq,recall,write][s.step](c);
 }
 function learn(c,step,delay){ const o=st[c.id]||{}; st[c.id]={t:'l',step,due:Date.now()+(delay??2*MIN),lapses:(o.lapses||0),bad:o.bad||0,u:Date.now()}; save(); }
-function graduate(c,iv){ const s=st[c.id]||{}; st[c.id]={t:'r',iv,ease:s.ease||2.5,due:Math.min(Date.now()+iv*DAY,EXAM-DAY/2),reps:(s.reps||0)+1,bad:s.bad||0,u:Date.now()}; save(); }
+function graduate(c,iv){ const s=st[c.id]||{}; st[c.id]={t:'r',iv,ease:s.ease||2.5,due:(EXAM-DAY/2>Date.now()+6*36e5?Math.min(Date.now()+iv*DAY,EXAM-DAY/2):Date.now()+iv*DAY),reps:(s.reps||0)+1,bad:s.bad||0,u:Date.now()}; save(); }
 const sAct=(c,isNew)=>snap(c,()=>{ if(isNew){ sessNew=Math.max(0,sessNew-1); const L=X.log[dkey()]; if(L&&L.nw) {L.nw--; saveX();} } show(c); });
 
 function flip(c,tag,isNew){
@@ -1108,17 +1108,19 @@ function allDue(){ const now=Date.now(); return deck.filter(c=>!muted(c)&&st[c.i
 function todayList(extra){
   // الفقه أول: المراجعات المستحقة، ثم جديد الفقه، وبعد ما يخلص الفقه تجي بقية المواد بحسب درجاتها
   const due=allDue().sort((a,b)=>(a.s==='fiqh'?0:1)-(b.s==='fiqh'?0:1)||st[a.id].due-st[b.id].due);
-  const n=(extra||0)+(plan().final?0:plan().left);
+  const n=(extra||0)+(plan().final?20:Math.max(plan().left,10));
   const nw=deck.filter(c=>!muted(c)&&!st[c.id]);
   const fresh=[...mixChap(nw.filter(c=>c.s==='fiqh')),...mixNew(nw.filter(c=>c.s!=='fiqh'))].slice(0,n);
   return [...due,...fresh];
 }
+function sessList(){ const L=todayList(), due=L.filter(c=>st[c.id]), fresh=L.filter(c=>!st[c.id]);
+  const d=due.slice(0,fresh.length?10:20); return shuffle([...d,...fresh.slice(0,20-d.length)]); }
 function subjPage(){
   page('📚 ذاكر مادة معينة',`<div class="menu">${subjects().map(k=>{ const cs=deck.filter(c=>c.s===k&&!muted(c)), kn=cs.filter(c=>st[c.id]?.t==='r').length;
     return `<button data-k="${k}"><span>${{fiqh:'⚖️',hadith:'📜',aqeedah:'🕋',nahw:'✍️',tafsir:'📖',tajweed:'🎙️',mithaq:'🕌'}[k]||'📘'}</span><b>${SUBJ[k]}</b><small>${marks()[k]} درجة · حفظت ${kn} من ${cs.length}</small></button>`;}).join('')}</div>`);
   $$('.menu button').forEach(b=>b.onclick=()=>{ const k=b.dataset.k, now=Date.now();
-    const cs=deck.filter(c=>c.s===k&&!muted(c)), due=cs.filter(c=>st[c.id]&&st[c.id].due<=now), fresh=mixChap(cs.filter(c=>!st[c.id]));
-    run([...due,...fresh].slice(0,20),SUBJ[k]); });
+    const cs=deck.filter(c=>c.s===k&&!muted(c)), due=cs.filter(c=>st[c.id]&&st[c.id].due<=now), fresh=mixChap(cs.filter(c=>!st[c.id])), d=shuffle(due).slice(0,fresh.length?10:20);
+    run(shuffle([...d,...fresh.slice(0,20-d.length)]),SUBJ[k]); });
 }
 function home(){
   U.length=0; stopSpeech(); SW=null; S.set('sub:'+tr,''); S.set('ch:'+tr,''); S.set('flt:'+tr,'all');
@@ -1139,7 +1141,7 @@ function home(){
     </div>
     <p class="sync">${syncTxt()}</p>
     <button class="link" id="sw">تغيير (إمام / مؤذن)</button></div>`;
-  on('#go',()=>run(L.length?L.slice(0,20):mixNew(deck.filter(c=>!muted(c)&&!st[c.id])).slice(0,10),'مذاكرة اليوم'));
+  on('#go',()=>run(L.length?sessList():mixNew(deck.filter(c=>!muted(c)&&!st[c.id])).slice(0,10),'مذاكرة اليوم'));
   on('#mock',()=>{ const M=marks(), subs=subjects(), tot=subs.reduce((a,k)=>a+M[k],0);
     const items=subs.flatMap(k=>buildExam(Math.max(2,Math.round(50*M[k]/tot)),deck.filter(c=>c.s===k)));
     page('📝 اختبار تجريبي',`<p class="note" style="text-align:right;font-size:1rem">50 سؤال من كل المواد، وعندك ساعة. الجواب الصح يطلع لك في الأخير.</p><button class="big" id="st">ابدأ الاختبار</button>`);
@@ -1156,7 +1158,7 @@ function runNext(){
   SW=null;
   if(!RQ.length){ const rest=todayList().length;
     page('🎉 أحسنت!',`<div class="today"><b>${ROK}</b><span>بطاقة خلصتها</span></div>${rest?`<button class="big" id="more">كمّل (باقي ${rest} اليوم)</button>`:'<p class="note" style="font-size:1.05rem;color:var(--accent);font-weight:700">خلصت كل بطاقات اليوم ✓</p>'}<button class="big alt" id="h">الرئيسية</button>`);
-    on('#h',home); on('#more',()=>run(todayList().slice(0,20),'مذاكرة اليوم')); return; }
+    on('#h',home); on('#more',()=>run(sessList(),'مذاكرة اليوم')); return; }
   const c=RQ[0], done=RTOT-RQ.length, pct=Math.round(100*done/Math.max(1,RTOT));
   const useMcq=c.w&&c.w.length>=3&&(RSEEN[c.id]||0)===0&&Math.random()<.6;
   const top=`<div class="bar"><button class="link" id="x">✕</button><div class="meter" style="flex:1"><i style="width:${pct}%"></i></div><span>${done}/${RTOT}</span></div>`;
